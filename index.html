@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descargar Stock - Crear Pedido</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Titillium Web', sans-serif;
+      background: #f7f9f7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0;
+    }
+
+    header {
+      width: 100%;
+      background-color: #658c68;
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    header img {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    header h1 {
+      color: white;
+      font-size: 24px;
+      font-weight: 400;
+    }
+
+    .logo {
+      height: 50px;
+      width: 132px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 600px;
+      width: 100%;
+      margin-top: 40px;
+    }
+
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 26px;
+      font-weight: 300;
+    }
+
+    .description {
+      color: #555;
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .download-zone {
+      border: 3px solid #658c68;
+      border-radius: 15px;
+      padding: 60px 20px;
+      margin: 30px 0;
+      background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%);
+      transition: all 0.3s ease;
+    }
+
+    .download-zone:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(101, 140, 104, 0.2);
+    }
+
+    .download-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+      color: #658c68;
+    }
+
+    .download-text {
+      font-size: 18px;
+      color: #444;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .download-hint {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .download-btn {
+      background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+      min-width: 200px;
+      box-shadow: 0 4px 15px rgba(101, 140, 104, 0.3);
+    }
+
+    .download-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(101, 140, 104, 0.4);
+    }
+
+    .download-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 30px;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+      text-align: left;
+    }
+
+    .status.success {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border: 1px solid #4caf50;
+    }
+
+    .status.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #f44336;
+    }
+
+    .status.processing {
+      background: #fff8e1;
+      color: #ef6c00;
+      border: 1px solid #ff9800;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #658c68;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      margin: 15px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #658c68 0%, #7da57f 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .info-title {
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 10px;
+    }
+
+    .info-list {
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .info-list li {
+      margin-bottom: 5px;
+    }
+
+    .next-step {
+      background: #f3e5f5;
+      border: 1px solid #9c27b0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .next-step-title {
+      font-weight: 600;
+      color: #7b1fa2;
+      margin-bottom: 10px;
+    }
+
+    .upload-link {
+      color: #7b1fa2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .upload-link:hover {
+      text-decoration: underline;
+    }
+
+    .debug-info {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: left;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="Logo Salpa" class="logo">
+  </header>
+  
+  <div class="container">
+    <h2>📦 Descargar Stock Disponible</h2>
+    
+    <div class="description">
+      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
+    </div>
+
+    <div class="info-box">
+      <div class="info-title">📋 Lo que incluye este archivo:</div>
+      <ul class="info-list">
+        <li><strong>Productos disponibles</strong> en la ubicación de stock</li>
+        <li><strong>Cantidades actuales</strong> en inventario</li>
+        <li><strong>Precios actualizados</strong> según tu lista de precios</li>
+        <li><strong>Información completa</strong> del producto (código, descripción)</li>
+        <li><strong>Columna de cantidad</strong> lista para que ingreses tu pedido</li>
+      </ul>
+    </div>
+    
+    <div class="download-zone">
+      <div class="download-icon">📊</div>
+      <div class="download-text">Stock de Ubicación 8</div>
+      <div class="download-hint">
+        Precios con Lista 5<br>
+        Se generará un archivo Excel listo para completar
+      </div>
+    </div>
+    
+    <button class="download-btn" id="downloadBtn" onclick="downloadStock()">
+      <span id="downloadBtnText">📥 Descargar Stock Actual</span>
+    </button>
+    
+    <div class="status" id="status"></div>
+    
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="next-step" style="display: none;" id="nextStep">
+      <div class="next-step-title">🚀 Siguiente paso:</div>
+      <p>
+        1. Abre el archivo Excel descargado<br>
+        2. Completa las cantidades que deseas pedir<br>
+        3. Guarda el archivo<br>
+        4. <a href="#" class="upload-link">Sube tu pedido aquí</a>
+      </p>
+    </div>
+
+    <div class="debug-info" id="debugInfo"></div>
+  </div>
+
+  <script>
+    // Replace with your actual Vercel backend URL for stock download
+    const API_URL = 'https://your-stock-api.vercel.app/api/download-stock';
+    
+    let debugMode = false;
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    const downloadBtnText = document.getElementById('downloadBtnText');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const nextStep = document.getElementById('nextStep');
+    const debugInfo = document.getElementById('debugInfo');
+    
+    function log(message, data = null) {
+      console.log(message, data);
+      if (debugMode) {
+        const timestamp = new Date().toLocaleTimeString();
+        debugInfo.innerHTML += `<div><strong>[${timestamp}]</strong> ${message}</div>`;
+        if (data) {
+          debugInfo.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+        debugInfo.scrollTop = debugInfo.scrollHeight;
+      }
+    }
+
+    async function downloadStock() {
+      log('Starting stock download...');
+      
+      downloadBtn.disabled = true;
+      downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando a Odoo...';
+      showStatus('processing', '🔄 Conectando a Odoo...');
+      progressBar.style.display = 'block';
+      setProgress(10);
+      
+      try {
+        setProgress(30);
+        showStatus('processing', '📊 Obteniendo datos de stock...');
+        
+        // Request stock data from backend
+        log('Requesting stock data from API:', API_URL);
+        
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            location_id: 8,
+            pricelist_id: 5
+          })
+        });
+        
+        log('Response received:', {
+          status: response.status,
+          statusText: response.statusText
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          log('Response error:', errorText);
+          throw new Error(`Error del servidor: ${response.status}\n${errorText}`);
+        }
+        
+        const result = await response.json();
+        log('Stock data received:', result);
+        
+        setProgress(70);
+        showStatus('processing', '📝 Generando archivo Excel...');
+        
+        if (!result.success || !result.products || result.products.length === 0) {
+          throw new Error(result.error || 'No se encontraron productos en stock');
+        }
+        
+        // Generate Excel file
+        const excelData = generateExcelData(result.products);
+        const fileName = `stock_ubicacion_8_${new Date().toISOString().split('T')[0]}.xlsx`;
+        
+        downloadExcelFile(excelData, fileName);
+        
+        setProgress(100);
+        showStatus('success', `✅ ¡Listo! Descargado: ${fileName}`);
+        
+        // Show next steps
+        nextStep.style.display = 'block';
+        
+        log('Download completed successfully');
+        
+      } catch (error) {
+        log('Download error:', error);
+        showStatus('error', `❌ Error: ${error.message}`);
+        setProgress(0);
+      }
+      
+      // Reset button
+      setTimeout(() => {
+        downloadBtn.disabled = false;
+        downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
+      }, 3000);
+    }
+    
+    function generateExcelData(products) {
+      log('Generating Excel data for products:', products.length);
+      
+      // Create headers for the Excel file
+      const headers = [
+        'Cliente ID',
+        'Producto ID', 
+        'Código',
+        'Producto',
+        'Descripción',
+        'Stock Disponible',
+        'Precio',
+        'Cantidad', // This is where user will input their desired quantity
+        'Subtotal'
+      ];
+      
+      // Create data rows
+      const rows = products.map(product => [
+        1, // Default customer ID - user can change this
+        product.product_id,
+        product.default_code || '',
+        product.name,
+        product.description || product.name,
+        product.qty_available,
+        product.price,
+        '', // Empty quantity for user to fill
+        '' // Empty subtotal - could add formula
+      ]);
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Create main worksheet with stock data
+      const wsData = [headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // Set column widths
+      ws['!cols'] = [
+        { width: 10 }, // Cliente ID
+        { width: 12 }, // Producto ID
+        { width: 15 }, // Código
+        { width: 30 }, // Producto
+        { width: 40 }, // Descripción
+        { width: 15 }, // Stock Disponible
+        { width: 12 }, // Precio
+        { width: 12 }, // Cantidad
+        { width: 12 }  // Subtotal
+      ];
+      
+      // Add to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'AUX_IMPORT');
+      
+      // Create instructions sheet
+      const instructions = [
+        ['📋 INSTRUCCIONES PARA CREAR TU PEDIDO'],
+        [''],
+        ['1. Revisa los productos disponibles en la hoja "AUX_IMPORT"'],
+        ['2. En la columna "Cantidad", ingresa cuánto quieres pedir de cada producto'],
+        ['3. Puedes cambiar el "Cliente ID" si es necesario (por defecto es 1)'],
+        ['4. Guarda el archivo cuando termines'],
+        ['5. Sube el archivo en el sistema de importación de pedidos'],
+        [''],
+        ['💡 CONSEJOS:'],
+        ['• Solo completa la cantidad de los productos que quieres pedir'],
+        ['• Verifica que no pidas más de lo que hay en stock'],
+        ['• El precio ya está calculado según tu lista de precios'],
+        ['• Puedes eliminar filas de productos que no necesites'],
+        [''],
+        ['⚠️ IMPORTANTE:'],
+        ['• NO cambies los nombres de las columnas'],
+        ['• NO cambies el nombre de la hoja "AUX_IMPORT"'],
+        ['• Asegúrate de que las cantidades sean números válidos']
+      ];
+      
+      const wsInstructions = XLSX.utils.aoa_to_sheet(instructions);
+      wsInstructions['!cols'] = [{ width: 60 }];
+      XLSX.utils.book_append_sheet(wb, wsInstructions, 'INSTRUCCIONES');
+      
+      log('Excel workbook generated with sheets:', wb.SheetNames);
+      return wb;
+    }
+    
+    function downloadExcelFile(workbook, fileName) {
+      log('Downloading Excel file:', fileName);
+      
+      // Generate binary data
+      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+      
+      // Convert to blob
+      function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
+      }
+      
+      const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      log('File download initiated');
+    }
+    
+    function showStatus(type, message) {
+      status.className = `status ${type}`;
+      status.innerHTML = message;
+      status.style.display = 'block';
+    }
+    
+    function hideStatus() {
+      status.style.display = 'none';
+    }
+    
+    function setProgress(percent) {
+      progressFill.style.width = percent + '%';
+    }
+
+    // Initialize
+    log('Stock downloader initialized', {
+      apiUrl: API_URL,
+      timestamp: new Date().toISOString()
+    });
+  </script>
+</body>
+</html>
