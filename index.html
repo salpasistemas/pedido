@@ -2,131 +2,273 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Descargar Stock desde Odoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descargar Stock - Crear Pedido</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 2rem;
-      max-width: 600px;
-      margin: auto;
+      font-family: 'Titillium Web', sans-serif;
+      background: #f7f9f7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
     }
-    h1 {
+    header {
+      width: 100%;
+      background-color: #658c68;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    header img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    .logo { height: 50px; width: 132px; }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin-top: 40px;
       text-align: center;
     }
-    label {
-      display: block;
-      margin: 1rem 0 0.5rem;
+    h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
+    .description {
+      color: #555;
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 1.6;
     }
-    select, button {
+    .download-zone {
+      border: 3px solid #658c68;
+      border-radius: 15px;
+      padding: 60px 20px;
+      margin: 30px 0;
+      background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%);
+      transition: all 0.3s ease;
+    }
+    .download-zone:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(101, 140, 104, 0.2);
+    }
+    .download-icon { font-size: 48px; margin-bottom: 15px; color: #658c68; }
+    .download-text { font-size: 18px; color: #444; margin-bottom: 10px; font-weight: 600; }
+    .download-hint { font-size: 14px; color: #666; line-height: 1.4; }
+    .download-btn {
+      background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+      min-width: 200px;
+      box-shadow: 0 4px 15px rgba(101, 140, 104, 0.3);
+    }
+    .download-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(101, 140, 104, 0.4);
+    }
+    .download-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status {
+      margin-top: 30px;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+      text-align: left;
+    }
+    .status.success {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border: 1px solid #4caf50;
+    }
+    .status.error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #f44336;
+    }
+    .status.processing {
+      background: #fff8e1;
+      color: #ef6c00;
+      border: 1px solid #ff9800;
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #658c68;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .progress-bar {
       width: 100%;
-      padding: 0.75rem;
-      font-size: 1rem;
-      margin-bottom: 1rem;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      margin: 15px 0;
+      overflow: hidden;
+      display: none;
     }
-    #status {
-      margin-top: 1rem;
-      font-weight: bold;
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #658c68 0%, #7da57f 100%);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
     }
+    .next-step {
+      background: #f3e5f5;
+      border: 1px solid #9c27b0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 30px;
+      text-align: left;
+    }
+    .next-step-title { font-weight: 600; color: #7b1fa2; margin-bottom: 10px; }
+    .upload-link {
+      color: #7b1fa2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .upload-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <h1>📦 Descargar Stock</h1>
+  <header>
+    <img src="logo.png" alt="Logo Salpa" class="logo">
+  </header>
 
-  <label for="location_id">Ubicación (Location ID):</label>
-  <select id="location_id">
-    <option value="8">8 - Stock Disponible Principal</option>
-    <option value="14">14 - Local</option>
-    <option value="15">15 - Depósito Interno</option>
-  </select>
+  <div class="container">
+    <h2>📦 Descargar Stock Disponible</h2>
 
-  <label for="pricelist_id">Lista de Precios:</label>
-  <select id="pricelist_id">
-    <option value="5">5 - Público General</option>
-    <option value="8">8 - Mayorista</option>
-  </select>
+    <div class="description">
+      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
+    </div>
 
-  <button id="downloadBtn">📥 Descargar Excel</button>
-  <div id="status"></div>
+    <div class="download-zone">
+      <div class="download-icon">📊</div>
+      <div class="download-text">Stock de Ubicación 8</div>
+      <div class="download-hint">Precios con Lista 5<br>Se generará un archivo Excel listo para completar</div>
+    </div>
+
+    <button class="download-btn" id="downloadBtn">
+      <span id="downloadBtnText">📥 Descargar Stock Actual</span>
+    </button>
+
+    <div class="status" id="status"></div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="next-step" style="display: none;" id="nextStep">
+      <div class="next-step-title">🚀 Siguiente paso:</div>
+      <p>
+        1. Abre el archivo Excel descargado<br>
+        2. Completa las cantidades que deseas pedir<br>
+        3. Guarda el archivo<br>
+        4. <a href="#" class="upload-link">Sube tu pedido aquí</a>
+      </p>
+    </div>
+  </div>
 
   <script>
-    async function fetchData(location_id, pricelist_id) {
-      const response = await fetch("https://stockexcel.vercel.app/api/download-stock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location_id, pricelist_id })
-      });
+    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
 
-      if (!response.ok) throw new Error(`Error: ${response.status}`);
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error || "Fallo la API");
-      return data.products;
+    const downloadBtn = document.getElementById('downloadBtn');
+    const downloadBtnText = document.getElementById('downloadBtnText');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const nextStep = document.getElementById('nextStep');
+
+    function showStatus(type, message) {
+      status.className = `status ${type}`;
+      status.innerHTML = message;
+      status.style.display = 'block';
     }
 
-    function generateExcelData(products) {
-      // Hoja oculta
-      const auxHeaders = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-      const auxRows = products.map(p => [1, p.product_id, p.default_code, p.name, p.qty_available, p.price, '', '']);
-      const auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders, ...auxRows]);
-      auxSheet['!cols'] = Array(auxHeaders.length).fill({ width: 15 });
-
-      // Hoja visible PEDIDO
-      const pedidoHeaders = ['Código', 'Producto', 'Stock', 'Precio', 'Cantidad', 'Subtotal'];
-      const pedidoRows = products.map((p, i) => {
-        const cantidadCell = `E${i + 2}`;
-        const precioCell = `D${i + 2}`;
-        return [
-          p.default_code,
-          p.name,
-          p.qty_available,
-          p.price,
-          '',
-          { f: `${cantidadCell}*${precioCell}` }
-        ];
-      });
-      const pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
-      pedidoSheet['!cols'] = [
-        { width: 15 }, { width: 30 }, { width: 12 },
-        { width: 12 }, { width: 12 }, { width: 15 }
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
-      XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
-
-      // Ocultar AUX_IMPORT
-      wb.Workbook = {
-        Sheets: [{ name: 'AUX_IMPORT', Hidden: 1 }]
-      };
-
-      return wb;
+    function setProgress(percent) {
+      progressFill.style.width = percent + '%';
+      progressBar.style.display = 'block';
     }
 
-    function downloadExcel(workbook, filename) {
-      XLSX.writeFile(workbook, filename);
-    }
-
-    document.getElementById("downloadBtn").addEventListener("click", async () => {
-      const location_id = document.getElementById("location_id").value;
-      const pricelist_id = document.getElementById("pricelist_id").value;
-      const status = document.getElementById("status");
-
+    async function downloadStock() {
       try {
-        status.textContent = "⏳ Descargando datos...";
-        const products = await fetchData(location_id, pricelist_id);
-        if (products.length === 0) {
-          status.textContent = "⚠️ No hay productos disponibles para esta ubicación.";
-          return;
+        downloadBtn.disabled = true;
+        downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
+        showStatus('processing', '🔄 Conectando a Odoo...');
+        setProgress(15);
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
+        });
+
+        setProgress(45);
+        showStatus('processing', '📊 Procesando datos...');
+
+        const data = await response.json();
+        if (!data.success || !data.products.length) {
+          throw new Error(data.error || 'No se encontraron productos.');
         }
-        const workbook = generateExcelData(products);
-        const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
-        downloadExcel(workbook, `stock_${timestamp}.xlsx`);
-        status.textContent = `✅ ${products.length} productos exportados.`;
+
+        const wb = XLSX.utils.book_new();
+        const headers = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Descripción', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
+        const rows = data.products.map(p => [1, p.product_id, p.default_code, p.name, p.description || p.name, p.qty_available, p.price, '', '']);
+        const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        sheet['!cols'] = headers.map(() => ({ width: 15 }));
+        XLSX.utils.book_append_sheet(wb, sheet, 'AUX_IMPORT');
+
+        // INSTRUCCIONES
+        const instrucciones = [
+          ['📋 INSTRUCCIONES'], [''], ['1. Completa cantidades en la columna "Cantidad"'], ['2. Guarda y sube el archivo en el sistema']
+        ];
+        const sheet2 = XLSX.utils.aoa_to_sheet(instrucciones);
+        sheet2['!cols'] = [{ width: 60 }];
+        XLSX.utils.book_append_sheet(wb, sheet2, 'INSTRUCCIONES');
+
+        const filename = `stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        XLSX.writeFile(wb, filename);
+
+        setProgress(100);
+        showStatus('success', `✅ ¡Descargado! ${filename}`);
+        nextStep.style.display = 'block';
+
       } catch (err) {
-        status.textContent = `❌ Error: ${err.message}`;
+        showStatus('error', `❌ Error: ${err.message}`);
+        setProgress(0);
+      } finally {
+        setTimeout(() => {
+          downloadBtn.disabled = false;
+          downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
+        }, 3000);
       }
-    });
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadStock);
   </script>
 </body>
 </html>
