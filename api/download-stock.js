@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Obtener información de productos
+    // Obtener información de productos - incluimos display_name explícitamente
     const products = await xmlrpcCall(models, 'execute_kw', [
       ODOO_DB, uid, ODOO_PASSWORD,
       'product.product', 'read',
@@ -148,14 +148,14 @@ export default async function handler(req, res) {
     const finalProducts = products
       .map(product => ({
         product_id: product.id,
-        name: product.display_name,
-        display_name: product.display_name,
+        name: product.name,
+        display_name: product.display_name, // Incluir display_name
         default_code: product.default_code || '',
         qty_available: Math.floor(productQuantities[product.id] || 0), // Redondear a entero
         price: Math.round(productPrices[product.id] * 100) / 100 // Redondear a 2 decimales
       }))
       .filter(product => product.qty_available > 0) // Solo productos con stock
-      .sort((a, b) => a.name.localeCompare(b.name)); // Ordenar alfabéticamente
+      .sort((a, b) => (a.display_name || a.name).localeCompare(b.display_name || b.name)); // Ordenar por display_name
 
     return res.status(200).json({
       success: true,
