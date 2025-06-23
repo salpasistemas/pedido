@@ -39,41 +39,28 @@
     }
     h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
     .description { color: #555; margin-bottom: 30px; font-size: 16px; line-height: 1.6; }
-    .features, .download-zone, .next-step { margin: 20px 0; }
-    .features { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; text-align: left; }
+    .features { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; text-align: left; margin: 20px 0; }
     .features h3 { color: #2e7d32; margin-bottom: 15px; font-size: 18px; }
     .features ul { list-style: none; padding: 0; }
     .features li { margin: 8px 0; padding-left: 20px; position: relative; }
     .features li::before { content: "✓"; position: absolute; left: 0; color: #4caf50; font-weight: bold; }
-    .download-zone {
-      border: 3px solid #658c68;
-      border-radius: 15px;
-      padding: 60px 20px;
-      background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%);
-      transition: all 0.3s ease;
-      text-align: center;
-    }
+    .download-zone { border: 3px solid #658c68; border-radius: 15px; padding: 60px 20px; background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%); transition: all 0.3s ease; text-align: center; }
     .download-zone:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(101,140,104,0.2); }
     .download-icon { font-size: 48px; color: #658c68; }
     .download-text { font-size: 18px; color: #444; font-weight: 600; margin: 10px 0; }
     .download-hint { font-size: 14px; color: #666; line-height: 1.4; }
-    .download-btn {
-      background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
-      color: white; border: none; padding: 15px 40px; border-radius: 25px;
-      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(101,140,104,0.3);
-    }
+    .download-btn { background: linear-gradient(135deg, #658c68 0%, #7da57f 100%); color: white; border: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(101,140,104,0.3); }
     .download-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(101,140,104,0.4); }
     .download-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .status { margin-top: 30px; padding: 15px; border-radius: 10px; display: none; text-align: left; }
     .status.success { background: #e8f5e8; color: #2e7d32; border: 1px solid #4caf50; }
     .status.error { background: #ffebee; color: #c62828; border: 1px solid #f44336; }
     .status.processing { background: #fff8e1; color: #ef6c00; border: 1px solid #ff9800; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3;	border-top: 2px solid #658c68; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #658c68; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
     @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
     .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; display: none; margin: 15px 0; }
     .progress-fill { height: 100%; background: linear-gradient(90deg,#658c68 0%,#7da57f 100%); width:0%; transition:width 0.3s ease; }
-    .next-step { background: #f3e5f5; border: 1px solid #9c27b0; border-radius:10px; padding:20px; text-align:left; }
+    .next-step { background: #f3e5f5; border: 1px solid #9c27b0; border-radius:10px; padding:20px; text-align:left; margin:20px 0; }
     .next-step-title { font-weight:600; color:#7b1fa2; margin-bottom:10px; }
     .upload-link { color:#7b1fa2; text-decoration:none; font-weight:600; }
     .upload-link:hover { text-decoration:underline; }
@@ -115,6 +102,7 @@
   </div>
   <script>
     const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
+    const TEMPLATE_PATH = '/templates/pedido_template.xlsx';
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
     const status = document.getElementById('status');
@@ -124,84 +112,70 @@
 
     function showStatus(type, msg) { status.className = `status ${type}`; status.innerHTML = msg; status.style.display = 'block'; }
     function setProgress(p) { progressFill.style.width = `${p}%`; progressBar.style.display = 'block'; }
-
     function cleanProductName(name) { return name.replace(/^\[.*?\]\s*/, '').trim(); }
 
-    function formatWorksheet(ws, headers, sheetName) {
-      const range = XLSX.utils.decode_range(ws['!ref']);
-      let cols;
-      if (sheetName === 'PEDIDO') {
-        cols = [ {width:0},{width:0},{width:40},{width:15},{width:0},{width:12},{width:12},{width:15} ];
-      } else {
-        cols = headers.map(() => ({ width: 20 }));
-      }
-      ws['!cols'] = cols;
-      headers.forEach((h,i) => {
-        const cell = XLSX.utils.encode_cell({r:0,c:i});
-        if (ws[cell]) ws[cell].s = { font:{bold:true,color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"658C68"}}, alignment:{horizontal:"center",vertical:"center"} };
-      });
-      // Numeric formatting
-      const idxs = { 'Precio Base':headers.indexOf('Precio Base'), 'Precio':headers.indexOf('Precio'), 'Subtotal':headers.indexOf('Subtotal') };
-      for (let r=1; r<=range.e.r; r++) {
-        Object.values(idxs).forEach(ci => {
-          const cell = XLSX.utils.encode_cell({r,c:ci}); if (ws[cell]) ws[cell].z = '"$"#,##0.00';
-        });
-      }
-      return ws;
+    async function loadTemplate() {
+      const res = await fetch(TEMPLATE_PATH);
+      const buf = await res.arrayBuffer();
+      return XLSX.read(buf, { type: 'array', cellStyles: true });
+    }
+
+    // Overwrite PEDIDO sheet rows while preserving header formatting
+    function populatePedidoSheet(wb, products) {
+      const sheetName = 'PEDIDO';
+      const ws = wb.Sheets[sheetName];
+      const headers = XLSX.utils.sheet_to_json(ws, { header:1, range:0, raw:false })[0];
+      const rows = products.map((p,i)=>[
+        p.product_id,
+        1,
+        cleanProductName(p.display_name||p.name),
+        p.qty_available,
+        p.price,
+        p.price * 0.4,
+        '',
+        { f: `IF(G${i+2}<>"",F${i+2}*G${i+2},"")` }
+      ]);
+      const newRange = { s: { c:0, r:0 }, e: { c: headers.length - 1, r: rows.length } };
+      ws['!ref'] = XLSX.utils.encode_range(newRange);
+      XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+      XLSX.utils.sheet_add_aoa(ws, rows, { origin: { r: 1, c: 0 } });
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range(newRange) };
     }
 
     async function downloadStock() {
       try {
         downloadBtn.disabled = true;
         downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing','🔄 Conectando a Odoo...'); setProgress(15);
+        showStatus('processing','🔄 Cargando plantilla...'); setProgress(10);
 
+        const wb = await loadTemplate();
+        wb.Workbook = wb.Workbook || {};
+        wb.Workbook.CalcPr = { fullCalcOnLoad:true };
+
+        showStatus('processing','🔄 Conectando a Odoo...'); setProgress(30);
         const resp = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location_id:8,pricelist_id:5})});
-        setProgress(45); showStatus('processing','📊 Procesando datos...');
-        const data = await resp.json(); if (!data.success||!data.products.length) throw new Error(data.error||'No products');
+        const data = await resp.json(); if(!data.success||!data.products.length) throw new Error(data.error||'No products');
 
-        setProgress(70); showStatus('processing','📄 Generando Excel...');
-        const wb = XLSX.utils.book_new(); wb.Workbook = { CalcPr:{ fullCalcOnLoad:true } };
+        showStatus('processing','📄 Poblando hoja PEDIDO...'); setProgress(60);
+        populatePedidoSheet(wb, data.products);
 
-        // PEDIDO
-        const pedidoH=['Producto ID','Cliente ID','Producto','Stock Disponible','Precio Base','Precio','Cantidad','Subtotal'];
-        const pedidoRows = data.products.map((p,i)=>[
-          p.product_id,1,cleanProductName(p.display_name||p.name),p.qty_available,p.price,p.price*0.4,'',{ f:`IF(G${i+2}<>"",F${i+2}*G${i+2},"")` }
-        ]);
-        let ps = XLSX.utils.aoa_to_sheet([pedidoH,...pedidoRows]);
-        ps = formatWorksheet(ps,pedidoH,'PEDIDO');
-        ps['!autofilter']={ref:XLSX.utils.encode_range({s:{c:0,r:0},e:{c:pedidoH.length-1,r:pedidoRows.length}})};
-        XLSX.utils.book_append_sheet(wb,ps,'PEDIDO');
+        showStatus('processing','💾 Generando archivo...'); setProgress(80);
+        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, filename);
 
-        // AUX_IMPORT
-        const auxH=['Cliente ID','Producto ID','Cantidad','Precio'];
-        let aux = XLSX.utils.aoa_to_sheet([auxH]);
-        const f = [
-          'FILTRAR(PEDIDO!B2:B30000;PEDIDO!G2:G30000<>"")',
-          'FILTRAR(PEDIDO!A2:A30000;PEDIDO!G2:G30000<>"")',
-          'FILTRAR(PEDIDO!G2:G30000;PEDIDO!G2:G30000<>"")',
-          'FILTRAR(PEDIDO!F2:F30000;PEDIDO!G2:G30000<>"")'
-        ];
-        XLSX.utils.sheet_add_aoa(aux,[f],{origin:{r:1,c:0}});
-        for(let c=0;c<f.length;c++){const cell=XLSX.utils.encode_cell({r:1,c});if(aux[cell])aux[cell]={f:f[c]};}
-        aux = formatWorksheet(aux,auxH,'AUX_IMPORT');
-        XLSX.utils.book_append_sheet(wb,aux,'AUX_IMPORT');
-
-        // Visibility
-        wb.Workbook.Sheets=[{name:'PEDIDO',Hidden:0},{name:'AUX_IMPORT',Hidden:1}];
-
-        setProgress(90); showStatus('processing','💾 Finalizando descarga...');
-        const fn=`pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb,fn);
-        setProgress(100); showStatus('success',`✅ ¡Descargado!<br><strong>${fn}</strong><br>Items: ${data.products.length}`);
+        setProgress(100);
+        showStatus('success',`✅ Descargado: <strong>${filename}</strong><br>Items: ${data.products.length}`);
         nextStep.style.display='block';
       } catch(e) {
-        console.error(e); showStatus('error',`❌ Error: ${e.message}`); setProgress(0);
+        console.error(e);
+        showStatus('error',`❌ Error: ${e.message}`);
+        setProgress(0);
       } finally {
-        setTimeout(()=>{downloadBtn.disabled=false;downloadBtnText.innerHTML='📥 Descargar Stock Actual';},3000);
+        setTimeout(()=>{ downloadBtn.disabled=false; downloadBtnText.innerHTML='📥 Descargar Stock Actual'; },3000);
       }
     }
-    downloadBtn.addEventListener('click',downloadStock);
+
+    downloadBtn.addEventListener('click', downloadStock);
   </script>
 </body>
 </html>
