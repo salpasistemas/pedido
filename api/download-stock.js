@@ -93,7 +93,7 @@ export default async function handler(req, res) {
         'product.product', 'search',
         [[
           ['id', 'in', allProductIds],
-          ['categ_id.parent_id', '=', 88]
+          ['categ_id', 'child_of', 88]
         ]]
       ], (err, ids) => err ? reject(err) : resolve(ids));
     });
