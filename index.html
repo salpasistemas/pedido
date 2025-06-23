@@ -338,7 +338,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             location_id: 8, 
-            pricelist_id: 5
+            pricelist_id: 5,
+            use_pricelist: true
           })
         });
 
@@ -378,17 +379,17 @@
         
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTRAR específicas)
+        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTER en inglés)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Cantidad', 'Precio'];
         
-        // Crear datos iniciales con las fórmulas FILTRAR en la segunda fila
+        // Crear datos iniciales con las fórmulas FILTER en inglés (no FILTRAR)
         const auxData = [
           auxHeaders,
           [
-            { f: 'FILTRAR(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")' }, // Cliente ID filtrado
-            { f: 'FILTRAR(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")' }, // Producto ID filtrado  
-            { f: 'FILTRAR(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")' }, // Cantidad filtrada
-            { f: 'FILTRAR(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")' }  // Precio filtrado
+            { f: 'FILTER(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")' }, // Cliente ID filtrado
+            { f: 'FILTER(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")' }, // Producto ID filtrado  
+            { f: 'FILTER(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")' }, // Cantidad filtrada
+            { f: 'FILTER(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")' }  // Precio filtrado
           ]
         ];
         
