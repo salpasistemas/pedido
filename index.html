@@ -336,10 +336,7 @@
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            location_id: 8, 
-            pricelist_id: 5
-          })
+          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
         });
 
         setProgress(45);
@@ -362,9 +359,9 @@
           1, // Cliente ID (será oculto, siempre 1)
           cleanProductName(p.display_name || p.name), // Nombre limpio sin códigos, preferir display_name
           p.qty_available,
-          p.price * 1.6, // Apply 60% markup (original price + 60%)
+          p.price,
           '', // Cantidad vacía para que el usuario complete
-          { f: `IF(F${index + 2}="","",E${index + 2}*F${index + 2})` } // Fórmula con fallback para cantidad vacía
+          { f: `IF(F${index + 2}="","",E${index + 2}*F${index + 2})` } // Fórmula con fallback para cantidad vacía (ajustada por nueva columna)
         ]);
         
         let pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
@@ -378,39 +375,29 @@
         
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTRAR)
+        // Crear hoja AUX_IMPORT (oculta, con datos filtrados del PEDIDO usando FILTRAR)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Cantidad', 'Precio'];
-        
-        // Crear la hoja con encabezados primero
-        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders]);
-        
-        // Agregar las fórmulas FILTRAR en la fila 2 (índice 1)
-        const formulaRow = [
-          'FILTRAR(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")', // Cliente ID filtrado
-          'FILTRAR(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")', // Producto ID filtrado  
-          'FILTRAR(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")', // Cantidad filtrada
-          'FILTRAR(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")'  // Precio filtrado
+        const auxData = [
+          auxHeaders,
+          [
+            '=FILTRAR(PEDIDO!B2:B30000;PEDIDO!F2:F30000<>"";""))', // Cliente ID filtrado
+            '=FILTRAR(PEDIDO!A2:A30000;PEDIDO!F2:F30000<>"";""))', // Producto ID filtrado
+            '=FILTRAR(PEDIDO!F2:F30000;PEDIDO!F2:F30000<>"";""))', // Cantidad filtrada
+            '=FILTRAR(PEDIDO!E2:E30000;PEDIDO!F2:F30000<>"";""))' // Precio filtrado
+          ]
         ];
         
-        // Insertar las fórmulas como texto en las celdas
-        for (let col = 0; col < formulaRow.length; col++) {
-          const cellRef = XLSX.utils.encode_cell({ r: 1, c: col });
-          auxSheet[cellRef] = { 
-            t: 'str', 
-            v: formulaRow[col],
-            f: formulaRow[col]
-          };
-        }
-        
+        let auxSheet = XLSX.utils.aoa_to_sheet(auxData);
         auxSheet = formatWorksheet(auxSheet, auxHeaders);
         XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
         
-        // Configurar hojas ocultas/visibles correctamente
+        // Configurar hojas ocultas/visibles
         wb.Workbook = wb.Workbook || {};
-        wb.Workbook.Sheets = [
-          { name: 'PEDIDO', Hidden: 0 },    // PEDIDO visible (0 = visible)
-          { name: 'AUX_IMPORT', Hidden: 1 } // AUX_IMPORT oculta (1 = hidden)
-        ];
+        wb.Workbook.Sheets = wb.Workbook.Sheets || [];
+        
+        // AUX_IMPORT debe estar oculta
+        wb.Workbook.Sheets.push({ name: 'AUX_IMPORT', Hidden: 1 });
+        // PEDIDO debe estar visible (no agregamos o ponemos Hidden: 0)
 
         setProgress(90);
         showStatus('processing', '💾 Finalizando descarga...');
