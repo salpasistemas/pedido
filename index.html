@@ -267,16 +267,17 @@
       
       // Configurar anchos de columna según el tipo de hoja
       let colWidths;
-      if (headers.includes('Producto ID') && headers.length === 7) {
+      if (headers.includes('Producto ID') && headers.length === 8) {
         // Hoja PEDIDO
         colWidths = {
           0: 0,  // Producto ID (oculta)
           1: 0,  // Cliente ID (oculta)
           2: 40, // Producto
           3: 15, // Stock
-          4: 12, // Precio
-          5: 12, // Cantidad
-          6: 15  // Subtotal
+          4: 0,  // Precio Base (oculta)
+          5: 12, // Precio Final
+          6: 12, // Cantidad
+          7: 15  // Subtotal
         };
       } else {
         // Hoja AUX_IMPORT
@@ -302,26 +303,36 @@
         }
       }
       
-      // Formatear columnas de números
-      for (let row = 1; row <= range.e.r; row++) {
-        // Formatear precios
-        const priceColIndex = headers.indexOf('Precio');
-        if (priceColIndex !== -1) {
-          const priceCell = XLSX.utils.encode_cell({ r: row, c: priceColIndex });
-          if (worksheet[priceCell]) {
-            worksheet[priceCell].z = '"$"#,##0.00';
-          }
-        }
-        
-        // Formatear subtotal
+        // Formatear columnas de números
+        const priceColIndex = headers.indexOf('Precio Final');
+        const priceBaseColIndex = headers.indexOf('Precio Base');
         const subtotalColIndex = headers.indexOf('Subtotal');
-        if (subtotalColIndex !== -1) {
-          const subtotalCell = XLSX.utils.encode_cell({ r: row, c: subtotalColIndex });
-          if (worksheet[subtotalCell]) {
-            worksheet[subtotalCell].z = '"$"#,##0.00';
+        
+        for (let row = 1; row <= range.e.r; row++) {
+          // Formatear precio base
+          if (priceBaseColIndex !== -1) {
+            const priceBaseCell = XLSX.utils.encode_cell({ r: row, c: priceBaseColIndex });
+            if (worksheet[priceBaseCell]) {
+              worksheet[priceBaseCell].z = '"$"#,##0.00';
+            }
+          }
+          
+          // Formatear precio final
+          if (priceColIndex !== -1) {
+            const priceCell = XLSX.utils.encode_cell({ r: row, c: priceColIndex });
+            if (worksheet[priceCell]) {
+              worksheet[priceCell].z = '"$"#,##0.00';
+            }
+          }
+          
+          // Formatear subtotal
+          if (subtotalColIndex !== -1) {
+            const subtotalCell = XLSX.utils.encode_cell({ r: row, c: subtotalColIndex });
+            if (worksheet[subtotalCell]) {
+              worksheet[subtotalCell].z = '"$"#,##0.00';
+            }
           }
         }
-      }
       
       return worksheet;
     }
@@ -336,7 +347,10 @@
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
+          body: JSON.stringify({ 
+            location_id: 8, 
+            pricelist_id: 5
+          })
         });
 
         setProgress(45);
@@ -353,15 +367,16 @@
         const wb = XLSX.utils.book_new();
         
         // Crear hoja PEDIDO (visible y user-friendly)
-        const pedidoHeaders = ['Producto ID', 'Cliente ID', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
+        const pedidoHeaders = ['Producto ID', 'Cliente ID', 'Producto', 'Stock Disponible', 'Precio Base', 'Precio Final', 'Cantidad', 'Subtotal'];
         const pedidoRows = data.products.map((p, index) => [
           p.product_id, // Producto ID (será oculto)
           1, // Cliente ID (será oculto, siempre 1)
           cleanProductName(p.display_name || p.name), // Nombre limpio sin códigos, preferir display_name
           p.qty_available,
-          p.price,
+          p.price, // Precio base (será oculto)
+          p.price * 1.4, // Precio final con 40% markup (multiply by 1.4)
           '', // Cantidad vacía para que el usuario complete
-          { f: `IF(F${index + 2}="","",E${index + 2}*F${index + 2})` } // Fórmula con fallback para cantidad vacía (ajustada por nueva columna)
+          { f: `IF(G${index + 2}="","",F${index + 2}*G${index + 2})` } // Fórmula ajustada para nueva columna
         ]);
         
         let pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
@@ -375,29 +390,40 @@
         
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con datos filtrados del PEDIDO usando FILTRAR)
+        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTRAR)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Cantidad', 'Precio'];
-        const auxData = [
-          auxHeaders,
-          [
-            '=FILTRAR(PEDIDO!B2:B30000;PEDIDO!F2:F30000<>"";""))', // Cliente ID filtrado
-            '=FILTRAR(PEDIDO!A2:A30000;PEDIDO!F2:F30000<>"";""))', // Producto ID filtrado
-            '=FILTRAR(PEDIDO!F2:F30000;PEDIDO!F2:F30000<>"";""))', // Cantidad filtrada
-            '=FILTRAR(PEDIDO!E2:E30000;PEDIDO!F2:F30000<>"";""))' // Precio filtrado
-          ]
+        
+        // Crear la hoja con encabezados primero
+        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders]);
+        
+        // Agregar las fórmulas FILTRAR en la fila 2 (índice 1)
+        const formulaRow = [
+          'FILTRAR(PEDIDO!B2:B30000;PEDIDO!F2:F30000<>"")', // Cliente ID filtrado
+          'FILTRAR(PEDIDO!A2:A30000;PEDIDO!F2:F30000<>"")', // Producto ID filtrado  
+          'FILTRAR(PEDIDO!F2:F30000;PEDIDO!F2:F30000<>"")', // Cantidad filtrada
+          'FILTRAR(PEDIDO!E2:E30000;PEDIDO!F2:F30000<>"")' // Precio filtrado
         ];
         
-        let auxSheet = XLSX.utils.aoa_to_sheet(auxData);
+        // Agregar las fórmulas como texto primero, luego las convertimos
+        XLSX.utils.sheet_add_aoa(auxSheet, [formulaRow], { origin: { r: 1, c: 0 } });
+        
+        // Convertir las celdas de texto a fórmulas
+        for(let col = 0; col < formulaRow.length; col++) {
+          const cellRef = XLSX.utils.encode_cell({ r: 1, c: col });
+          if(auxSheet[cellRef]) {
+            auxSheet[cellRef] = { f: formulaRow[col] };
+          }
+        }
+        
         auxSheet = formatWorksheet(auxSheet, auxHeaders);
         XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
         
-        // Configurar hojas ocultas/visibles
+        // Configurar hojas ocultas/visibles correctamente
         wb.Workbook = wb.Workbook || {};
-        wb.Workbook.Sheets = wb.Workbook.Sheets || [];
-        
-        // AUX_IMPORT debe estar oculta
-        wb.Workbook.Sheets.push({ name: 'AUX_IMPORT', Hidden: 1 });
-        // PEDIDO debe estar visible (no agregamos o ponemos Hidden: 0)
+        wb.Workbook.Sheets = [
+          { name: 'PEDIDO', Hidden: 0 },    // PEDIDO visible (0 = visible)
+          { name: 'AUX_IMPORT', Hidden: 2 } // AUX_IMPORT muy oculta (2 = very hidden)
+        ];
 
         setProgress(90);
         showStatus('processing', '💾 Finalizando descarga...');
