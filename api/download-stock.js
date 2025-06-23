@@ -1,11 +1,8 @@
-// api/download-stock.js
 export default async function handler(req, res) {
-  // Load xmlrpc safely
   let xmlrpc;
   try {
     xmlrpc = require('xmlrpc');
   } catch (err) {
-    console.error('Error loading xmlrpc:', err);
     return res.status(500).json({
       success: false,
       error: 'Could not load xmlrpc module',
@@ -13,7 +10,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // CORS
   const allowedOrigins = [
     'https://salpasistemas.github.io',
     'http://localhost:3000',
@@ -30,15 +26,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    console.log('=== STOCK DOWNLOAD REQUEST START ===');
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-
-    // Get request parameters (location_id and pricelist_id)
     const { location_id = 8, pricelist_id = 5 } = req.body || {};
-    console.log('Requested location_id:', location_id);
-    console.log('Requested pricelist_id:', pricelist_id);
-
-    // Read environment variables
     const { ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD } = process.env;
     const missing = ['ODOO_URL','ODOO_DB','ODOO_USERNAME','ODOO_PASSWORD'].filter(v => !process.env[v]);
     if (missing.length) {
@@ -48,199 +36,119 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('=== ODOO CONNECTION INFO ===');
-    console.log('URL:', ODOO_URL);
-    console.log('DB:', ODOO_DB);
-    console.log('Username:', ODOO_USERNAME);
-
-    // 1) Authentication
     const common = xmlrpc.createSecureClient({ url: `${ODOO_URL}/xmlrpc/2/common` });
     const uid = await new Promise((resolve, reject) => {
-      common.methodCall('authenticate', [
-        ODOO_DB,
-        ODOO_USERNAME,
-        ODOO_PASSWORD,
-        {}
-      ], (err, userId) => err ? reject(err) : resolve(userId));
+      common.methodCall('authenticate', [ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD, {}],
+        (err, userId) => err ? reject(err) : resolve(userId));
     });
-    
-    if (!uid) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication failed - invalid credentials'
-      });
-    }
-    
-    console.log('✅ Authenticated UID:', uid);
 
-    // 2) Client for object calls
+    if (!uid) {
+      return res.status(401).json({ success: false, error: 'Authentication failed' });
+    }
+
     const models = xmlrpc.createSecureClient({ url: `${ODOO_URL}/xmlrpc/2/object` });
 
-    // 3) Get stock data from specific location
-    console.log('=== FETCHING STOCK DATA ===');
-    console.log('Location ID:', location_id);
-    
-    // First, get stock quants for the location
-    console.log('Fetching stock quants...');
     const quantIds = await new Promise((resolve, reject) => {
       models.methodCall('execute_kw', [
-        ODOO_DB,
-        uid,
-        ODOO_PASSWORD,
-        'stock.quant',
-        'search',
+        ODOO_DB, uid, ODOO_PASSWORD,
+        'stock.quant', 'search',
         [[
           ['location_id', '=', parseInt(location_id)],
-          ['quantity', '>', 0], // Only products with stock
-          ['product_id.active', '=', true] // Only active products
+          ['quantity', '>', 0],
+          ['product_id.active', '=', true]
         ]]
       ], (err, ids) => err ? reject(err) : resolve(ids));
     });
-    
-    console.log(`Found ${quantIds.length} stock quants in location ${location_id}`);
-    
+
     if (quantIds.length === 0) {
       return res.status(200).json({
         success: true,
         products: [],
-        message: `No stock found in location ${location_id}`,
-        location_id,
-        pricelist_id
+        message: `No stock found in location ${location_id}`
       });
     }
 
-    // Get detailed quant information
-    console.log('Fetching quant details...');
     const quants = await new Promise((resolve, reject) => {
       models.methodCall('execute_kw', [
-        ODOO_DB,
-        uid,
-        ODOO_PASSWORD,
-        'stock.quant',
-        'read',
+        ODOO_DB, uid, ODOO_PASSWORD,
+        'stock.quant', 'read',
         [quantIds, ['product_id', 'quantity', 'reserved_quantity']]
       ], (err, data) => err ? reject(err) : resolve(data));
     });
-    
-    console.log(`Retrieved details for ${quants.length} quants`);
 
-    // Get unique product IDs and calculate available quantities
     const productQuantities = {};
     quants.forEach(quant => {
       const productId = quant.product_id[0];
       const availableQty = quant.quantity - (quant.reserved_quantity || 0);
-      
       if (availableQty > 0) {
-        if (!productQuantities[productId]) {
-          productQuantities[productId] = 0;
-        }
-        productQuantities[productId] += availableQty;
+        productQuantities[productId] = (productQuantities[productId] || 0) + availableQty;
       }
     });
-    
-    const productIds = Object.keys(productQuantities).map(id => parseInt(id));
-    console.log(`Found ${productIds.length} products with available stock`);
 
-    if (productIds.length === 0) {
+    const allProductIds = Object.keys(productQuantities).map(id => parseInt(id));
+
+    const filteredProductIds = await new Promise((resolve, reject) => {
+      models.methodCall('execute_kw', [
+        ODOO_DB, uid, ODOO_PASSWORD,
+        'product.product', 'search',
+        [[
+          ['id', 'in', allProductIds],
+          ['categ_id.parent_id', '=', 88]
+        ]]
+      ], (err, ids) => err ? reject(err) : resolve(ids));
+    });
+
+    if (filteredProductIds.length === 0) {
       return res.status(200).json({
         success: true,
         products: [],
-        message: `No available stock found in location ${location_id}`,
-        location_id,
-        pricelist_id
+        message: 'No products matching category filter'
       });
     }
 
-    // 4) Get product information
-    console.log('Fetching product information...');
     const products = await new Promise((resolve, reject) => {
       models.methodCall('execute_kw', [
-        ODOO_DB,
-        uid,
-        ODOO_PASSWORD,
-        'product.product',
-        'read',
-        [productIds, [
-          'name', 
-          'default_code', 
-          'description_sale',
-          'list_price',
-          'active'
-        ]]
+        ODOO_DB, uid, ODOO_PASSWORD,
+        'product.product', 'read',
+        [filteredProductIds, ['display_name', 'default_code', 'list_price']]
       ], (err, data) => err ? reject(err) : resolve(data));
     });
-    
-    console.log(`Retrieved information for ${products.length} products`);
 
-    // 5) Get prices from pricelist
-    console.log(`Fetching prices from pricelist ${pricelist_id}...`);
-    
-    // We'll get the prices using the pricelist
     const productPrices = {};
-    
-    // Method to get pricelist prices - we'll call it for each product
     for (const product of products) {
       try {
-        const priceData = await new Promise((resolve, reject) => {
+        const price = await new Promise((resolve, reject) => {
           models.methodCall('execute_kw', [
-            ODOO_DB,
-            uid,
-            ODOO_PASSWORD,
-            'product.pricelist',
-            'get_product_price',
-            [parseInt(pricelist_id), product.id, 1] // pricelist_id, product_id, qty=1
-          ], (err, price) => err ? reject(err) : resolve(price));
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'product.pricelist', 'get_product_price',
+            [parseInt(pricelist_id), product.id, 1]
+          ], (err, result) => err ? reject(err) : resolve(result));
         });
-        
-        productPrices[product.id] = priceData || product.list_price || 0;
-      } catch (priceError) {
-        console.warn(`Could not get pricelist price for product ${product.id}, using list price`);
+        productPrices[product.id] = price || product.list_price || 0;
+      } catch (err) {
         productPrices[product.id] = product.list_price || 0;
       }
     }
-    
-    console.log('Price retrieval completed');
 
-    // 6) Combine all data
-    console.log('Combining product data...');
-    const finalProducts = products
-      .filter(product => productQuantities[product.id] > 0) // Only products with stock
-      .map(product => ({
-        product_id: product.id,
-        name: product.name,
-        default_code: product.default_code || '',
-        description: product.description_sale || product.name,
-        qty_available: productQuantities[product.id],
-        list_price: product.list_price || 0,
-        price: productPrices[product.id] || product.list_price || 0
-      }))
-      .sort((a, b) => {
-        // Sort by code first, then by name
-        if (a.default_code && b.default_code) {
-          return a.default_code.localeCompare(b.default_code);
-        }
-        return a.name.localeCompare(b.name);
-      });
+    const finalProducts = products.map(product => ({
+      product_id: product.id,
+      name: product.display_name,
+      default_code: product.default_code || '',
+      qty_available: productQuantities[product.id] || 0,
+      price: productPrices[product.id] || 0
+    }));
 
-    console.log(`Final product list: ${finalProducts.length} products`);
-    
-    // 7) Response
     return res.status(200).json({
       success: true,
       products: finalProducts,
-      total_products: finalProducts.length,
-      location_id: parseInt(location_id),
-      pricelist_id: parseInt(pricelist_id),
-      message: `Found ${finalProducts.length} products with stock in location ${location_id}`,
-      timestamp: new Date().toISOString()
+      total_products: finalProducts.length
     });
 
   } catch (error) {
-    console.error('=== STOCK DOWNLOAD ERROR ===', error);
     return res.status(500).json({
       success: false,
       error: error.message,
-      details: error.stack || 'Check server logs'
+      details: error.stack
     });
   }
 }
