@@ -36,11 +36,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // Función helper para crear promesas XML-RPC
+    const xmlrpcCall = (client, method, params) => {
+      return new Promise((resolve, reject) => {
+        client.methodCall(method, params, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+    };
+
+    // Autenticación
     const common = xmlrpc.createSecureClient({ url: `${ODOO_URL}/xmlrpc/2/common` });
-    const uid = await new Promise((resolve, reject) => {
-      common.methodCall('authenticate', [ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD, {}],
-        (err, userId) => err ? reject(err) : resolve(userId));
-    });
+    const uid = await xmlrpcCall(common, 'authenticate', [ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD, {}]);
 
     if (!uid) {
       return res.status(401).json({ success: false, error: 'Authentication failed' });
@@ -48,17 +56,16 @@ export default async function handler(req, res) {
 
     const models = xmlrpc.createSecureClient({ url: `${ODOO_URL}/xmlrpc/2/object` });
 
-    const quantIds = await new Promise((resolve, reject) => {
-      models.methodCall('execute_kw', [
-        ODOO_DB, uid, ODOO_PASSWORD,
-        'stock.quant', 'search',
-        [[
-          ['location_id', '=', parseInt(location_id)],
-          ['quantity', '>', 0],
-          ['product_id.active', '=', true]
-        ]]
-      ], (err, ids) => err ? reject(err) : resolve(ids));
-    });
+    // Buscar quants con stock disponible
+    const quantIds = await xmlrpcCall(models, 'execute_kw', [
+      ODOO_DB, uid, ODOO_PASSWORD,
+      'stock.quant', 'search',
+      [[
+        ['location_id', '=', parseInt(location_id)],
+        ['quantity', '>', 0],
+        ['product_id.active', '=', true]
+      ]]
+    ]);
 
     if (quantIds.length === 0) {
       return res.status(200).json({
@@ -68,14 +75,14 @@ export default async function handler(req, res) {
       });
     }
 
-    const quants = await new Promise((resolve, reject) => {
-      models.methodCall('execute_kw', [
-        ODOO_DB, uid, ODOO_PASSWORD,
-        'stock.quant', 'read',
-        [quantIds, ['product_id', 'quantity', 'reserved_quantity']]
-      ], (err, data) => err ? reject(err) : resolve(data));
-    });
+    // Leer información de quants
+    const quants = await xmlrpcCall(models, 'execute_kw', [
+      ODOO_DB, uid, ODOO_PASSWORD,
+      'stock.quant', 'read',
+      [quantIds, ['product_id', 'quantity', 'reserved_quantity']]
+    ]);
 
+    // Calcular cantidades disponibles por producto
     const productQuantities = {};
     quants.forEach(quant => {
       const productId = quant.product_id[0];
@@ -86,17 +93,23 @@ export default async function handler(req, res) {
     });
 
     const allProductIds = Object.keys(productQuantities).map(id => parseInt(id));
+    if (allProductIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        products: [],
+        message: 'No products with available stock'
+      });
+    }
 
-    const filteredProductIds = await new Promise((resolve, reject) => {
-      models.methodCall('execute_kw', [
-        ODOO_DB, uid, ODOO_PASSWORD,
-        'product.product', 'search',
-        [[
-          ['id', 'in', allProductIds],
-          ['categ_id', 'child_of', 88]
-        ]]
-      ], (err, ids) => err ? reject(err) : resolve(ids));
-    });
+    // Filtrar productos por categoría
+    const filteredProductIds = await xmlrpcCall(models, 'execute_kw', [
+      ODOO_DB, uid, ODOO_PASSWORD,
+      'product.product', 'search',
+      [[
+        ['id', 'in', allProductIds],
+        ['categ_id', 'child_of', 88]
+      ]]
+    ]);
 
     if (filteredProductIds.length === 0) {
       return res.status(200).json({
@@ -106,49 +119,59 @@ export default async function handler(req, res) {
       });
     }
 
-    const products = await new Promise((resolve, reject) => {
-      models.methodCall('execute_kw', [
-        ODOO_DB, uid, ODOO_PASSWORD,
-        'product.product', 'read',
-        [filteredProductIds, ['display_name', 'default_code', 'list_price']]
-      ], (err, data) => err ? reject(err) : resolve(data));
-    });
+    // Obtener información de productos
+    const products = await xmlrpcCall(models, 'execute_kw', [
+      ODOO_DB, uid, ODOO_PASSWORD,
+      'product.product', 'read',
+      [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name']]
+    ]);
 
+    // Obtener precios de la lista de precios
     const productPrices = {};
-    for (const product of products) {
+    const pricePromises = products.map(async product => {
       try {
-        const price = await new Promise((resolve, reject) => {
-          models.methodCall('execute_kw', [
-            ODOO_DB, uid, ODOO_PASSWORD,
-            'product.pricelist', 'get_product_price',
-            [parseInt(pricelist_id), product.id, 1]
-          ], (err, result) => err ? reject(err) : resolve(result));
-        });
+        const price = await xmlrpcCall(models, 'execute_kw', [
+          ODOO_DB, uid, ODOO_PASSWORD,
+          'product.pricelist', 'get_product_price',
+          [parseInt(pricelist_id), product.id, 1]
+        ]);
         productPrices[product.id] = price || product.list_price || 0;
       } catch (err) {
+        console.error(`Error getting price for product ${product.id}:`, err.message);
         productPrices[product.id] = product.list_price || 0;
       }
-    }
+    });
 
-    const finalProducts = products.map(product => ({
-      product_id: product.id,
-      name: product.display_name,
-      default_code: product.default_code || '',
-      qty_available: productQuantities[product.id] || 0,
-      price: productPrices[product.id] || 0
-    }));
+    await Promise.all(pricePromises);
+
+    // Preparar datos finales
+    const finalProducts = products
+      .map(product => ({
+        product_id: product.id,
+        name: product.display_name,
+        display_name: product.display_name,
+        default_code: product.default_code || '',
+        qty_available: Math.floor(productQuantities[product.id] || 0), // Redondear a entero
+        price: Math.round(productPrices[product.id] * 100) / 100 // Redondear a 2 decimales
+      }))
+      .filter(product => product.qty_available > 0) // Solo productos con stock
+      .sort((a, b) => a.name.localeCompare(b.name)); // Ordenar alfabéticamente
 
     return res.status(200).json({
       success: true,
       products: finalProducts,
-      total_products: finalProducts.length
+      total_products: finalProducts.length,
+      location_id: parseInt(location_id),
+      pricelist_id: parseInt(pricelist_id),
+      generated_at: new Date().toISOString()
     });
 
   } catch (error) {
+    console.error('API Error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
-      details: error.stack
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
