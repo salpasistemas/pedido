@@ -8,35 +8,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    /* Styles unchanged from original */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Titillium Web', sans-serif;
-      background: #f7f9f7;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
-    header {
-      width: 100%;
-      background-color: #658c68;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+    body { font-family: 'Titillium Web', sans-serif; background: #f7f9f7; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+    header { width: 100%; background-color: #658c68; padding: 20px; display: flex; justify-content: center; align-items: center; }
     header img { height: 40px; margin-right: 10px; }
     .logo { height: 50px; width: 132px; }
-    .container {
-      background: white;
-      border-radius: 20px;
-      padding: 40px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      max-width: 600px;
-      margin-top: 40px;
-      text-align: center;
-    }
+    .container { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 600px; margin-top: 40px; text-align: center; }
     h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
     .description { color: #555; margin-bottom: 30px; font-size: 16px; line-height: 1.6; }
     .features { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; text-align: left; margin: 20px 0; }
@@ -44,12 +22,12 @@
     .features ul { list-style: none; padding: 0; }
     .features li { margin: 8px 0; padding-left: 20px; position: relative; }
     .features li::before { content: "✓"; position: absolute; left: 0; color: #4caf50; font-weight: bold; }
-    .download-zone { border: 3px solid #658c68; border-radius: 15px; padding: 60px 20px; background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%); transition: all 0.3s ease; text-align: center; }
+    .download-zone { border: 3px solid #658c68; border-radius: 15px; padding: 60px 20px; background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%); transition: all 0.3s ease; }
     .download-zone:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(101,140,104,0.2); }
-    .download-icon { font-size: 48px; color: #658c68; }
-    .download-text { font-size: 18px; color: #444; font-weight: 600; margin: 10px 0; }
+    .download-icon { font-size: 48px; margin-bottom: 15px; color: #658c68; }
+    .download-text { font-size: 18px; color: #444; margin-bottom: 10px; font-weight: 600; }
     .download-hint { font-size: 14px; color: #666; line-height: 1.4; }
-    .download-btn { background: linear-gradient(135deg, #658c68 0%, #7da57f 100%); color: white; border: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(101,140,104,0.3); }
+    .download-btn { background: linear-gradient(135deg, #658c68 0%, #7da57f 100%); color: white; border: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 20px; min-width: 200px; box-shadow: 0 4px 15px rgba(101,140,104,0.3); }
     .download-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(101,140,104,0.4); }
     .download-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .status { margin-top: 30px; padding: 15px; border-radius: 10px; display: none; text-align: left; }
@@ -57,13 +35,13 @@
     .status.error { background: #ffebee; color: #c62828; border: 1px solid #f44336; }
     .status.processing { background: #fff8e1; color: #ef6c00; border: 1px solid #ff9800; }
     .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #658c68; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
-    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
-    .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; display: none; margin: 15px 0; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg,#658c68 0%,#7da57f 100%); width:0%; transition:width 0.3s ease; }
-    .next-step { background: #f3e5f5; border: 1px solid #9c27b0; border-radius:10px; padding:20px; text-align:left; margin:20px 0; }
-    .next-step-title { font-weight:600; color:#7b1fa2; margin-bottom:10px; }
-    .upload-link { color:#7b1fa2; text-decoration:none; font-weight:600; }
-    .upload-link:hover { text-decoration:underline; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 4px; margin: 15px 0; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #658c68 0%, #7da57f 100%); width: 0%; transition: width 0.3s ease; }
+    .next-step { background: #f3e5f5; border: 1px solid #9c27b0; border-radius: 10px; padding: 20px; margin-top: 30px; text-align: left; }
+    .next-step-title { font-weight: 600; color: #7b1fa2; margin-bottom: 10px; }
+    .upload-link { color: #7b1fa2; text-decoration: none; font-weight: 600; }
+    .upload-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -73,7 +51,10 @@
 
   <div class="container">
     <h2>📦 Descargar Stock Disponible</h2>
-    <div class="description">Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.</div>
+
+    <div class="description">
+      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
+    </div>
 
     <div class="features">
       <h3>🚀 Nuevo formato mejorado:</h3>
@@ -82,7 +63,7 @@
         <li>Nombres de productos limpios (sin códigos entre corchetes)</li>
         <li>Precios con descuento automático del 60%</li>
         <li>Cálculo automático de subtotales</li>
-        <li>Filtrado automático de productos solicitados en AUX_IMPORT</li>
+        <li>Filtrado automático de productos solicitados</li>
       </ul>
     </div>
 
@@ -96,14 +77,26 @@
 
     <div class="status" id="status"></div>
 
-    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
 
-    <div class="next-step" id="nextStep" style="display:none;"><div class="next-step-title">🚀 Siguiente paso:</div><p>1. Abre el archivo Excel descargado<br>2. Ve a la hoja "PEDIDO" y completa las cantidades<br>3. Los subtotales se calcularán automáticamente<br>4. Guarda el archivo<br>5. <a href="#" class="upload-link">Sube tu pedido aquí</a></p></div>
+    <div class="next-step" id="nextStep" style="display: none;">
+      <div class="next-step-title">🚀 Siguiente paso:</div>
+      <p>
+        1. Abre el archivo Excel descargado<br>
+        2. Ve a la hoja "PEDIDO" y completa las cantidades<br>
+        3. Los subtotales se calcularán automáticamente<br>
+        4. Guarda el archivo<br>
+        5. <a href="#" class="upload-link">Sube tu pedido aquí</a>
+      </p>
+    </div>
   </div>
 
   <script>
     const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
     const TEMPLATE_PATH = '/templates/pedido_template.xlsx';
+
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
     const status = document.getElementById('status');
@@ -111,9 +104,20 @@
     const progressFill = document.getElementById('progressFill');
     const nextStep = document.getElementById('nextStep');
 
-    function showStatus(type, msg) { status.className = `status ${type}`; status.innerHTML = msg; status.style.display = 'block'; }
-    function setProgress(p) { progressFill.style.width = `${p}%`; progressBar.style.display = 'block'; }
-    function cleanProductName(name) { return name.replace(/^\[.*?\]\s*/, '').trim(); }
+    function showStatus(type, message) {
+      status.className = `status ${type}`;
+      status.innerHTML = message;
+      status.style.display = 'block';
+    }
+
+    function setProgress(percent) {
+      progressFill.style.width = `${percent}%`;
+      progressBar.style.display = 'block';
+    }
+
+    function cleanProductName(displayName) {
+      return displayName.replace(/^\[.*?\]\s*/, '').trim();
+    }
 
     async function loadTemplate() {
       const res = await fetch(TEMPLATE_PATH);
@@ -124,18 +128,18 @@
     function populatePedidoSheet(wb, products) {
       const sheetName = 'PEDIDO';
       const ws = wb.Sheets[sheetName];
-      const headers = XLSX.utils.sheet_to_json(ws, { header:1, range:0, raw:false })[0];
-      const rows = products.map((p,i)=>[
-        p.product_id,
-        1,
-        cleanProductName(p.display_name||p.name),
+      const headers = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, raw: false })[0];
+      const rows = products.map((p, index) => [
+        p.product_id, // Producto ID
+        1,           // Cliente ID
+        cleanProductName(p.display_name || p.name),
         p.qty_available,
         p.price,
         p.price * 0.4,
         '',
-        { f: `IF(G${i+2}<>"",F${i+2}*G${i+2},"")` }
+        { f: `IF(G${index + 2}<>"",F${index + 2}*G${index + 2},"")` }
       ]);
-      const newRange = { s: { c:0, r:0 }, e: { c: headers.length - 1, r: rows.length } };
+      const newRange = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rows.length } };
       ws['!ref'] = XLSX.utils.encode_range(newRange);
       XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
       XLSX.utils.sheet_add_aoa(ws, rows, { origin: { r: 1, c: 0 } });
@@ -146,32 +150,50 @@
       try {
         downloadBtn.disabled = true;
         downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing','🔄 Cargando plantilla...'); setProgress(10);
+        showStatus('processing', '🔄 Cargando plantilla...');
+        setProgress(10);
 
         const wb = await loadTemplate();
         wb.Workbook = wb.Workbook || {};
-        wb.Workbook.CalcPr = { fullCalcOnLoad:true };
+        wb.Workbook.CalcPr = { fullCalcOnLoad: true };
 
-        showStatus('processing','🔄 Conectando a Odoo...'); setProgress(30);
-        const resp = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location_id:8,pricelist_id:5})});
-        const data = await resp.json(); if(!data.success||!data.products.length) throw new Error(data.error||'No products');
+        showStatus('processing', '🔄 Conectando a Odoo...');
+        setProgress(30);
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
+        });
 
-        showStatus('processing','📄 Poblando hoja PEDIDO...'); setProgress(60);
+        setProgress(45);
+        showStatus('processing', '📊 Procesando datos...');
+
+        const data = await response.json();
+        if (!data.success || !data.products.length) {
+          throw new Error(data.error || 'No se encontraron productos.');
+        }
+
+        setProgress(70);
+        showStatus('processing', '📄 Poblando hoja PEDIDO...');
         populatePedidoSheet(wb, data.products);
 
-        showStatus('processing','💾 Generando archivo...'); setProgress(80);
-        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
+        setProgress(90);
+        showStatus('processing', '💾 Generando archivo...');
+        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
         XLSX.writeFile(wb, filename);
 
         setProgress(100);
-        showStatus('success',`✅ Descargado: <strong>${filename}</strong><br>Items: ${data.products.length}`);
-        nextStep.style.display='block';
-      } catch (e) {
-        console.error(e);
-        showStatus('error',`❌ Error: ${e.message}`);
+        showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
+        nextStep.style.display = 'block';
+      } catch (err) {
+        console.error('Error:', err);
+        showStatus('error', `❌ Error: ${err.message}`);
         setProgress(0);
       } finally {
-        setTimeout(()=>{ downloadBtn.disabled=false; downloadBtnText.innerHTML='📥 Descargar Stock Actual'; },3000);
+        setTimeout(() => {
+          downloadBtn.disabled = false;
+          downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
+        }, 3000);
       }
     }
 
