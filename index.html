@@ -338,8 +338,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             location_id: 8, 
-            pricelist_id: 5,
-            use_pricelist: true
+            pricelist_id: 5
           })
         });
 
@@ -363,7 +362,7 @@
           1, // Cliente ID (será oculto, siempre 1)
           cleanProductName(p.display_name || p.name), // Nombre limpio sin códigos, preferir display_name
           p.qty_available,
-          p.price, // This should now use pricelist_id = 5
+          p.price * 1.6, // Apply 60% markup (original price + 60%)
           '', // Cantidad vacía para que el usuario complete
           { f: `IF(F${index + 2}="","",E${index + 2}*F${index + 2})` } // Fórmula con fallback para cantidad vacía
         ]);
@@ -379,21 +378,29 @@
         
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTER en inglés)
+        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTRAR)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Cantidad', 'Precio'];
         
-        // Crear datos iniciales con las fórmulas FILTER en inglés (no FILTRAR)
-        const auxData = [
-          auxHeaders,
-          [
-            { f: 'FILTER(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")' }, // Cliente ID filtrado
-            { f: 'FILTER(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")' }, // Producto ID filtrado  
-            { f: 'FILTER(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")' }, // Cantidad filtrada
-            { f: 'FILTER(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")' }  // Precio filtrado
-          ]
+        // Crear la hoja con encabezados primero
+        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders]);
+        
+        // Agregar las fórmulas FILTRAR en la fila 2 (índice 1)
+        const formulaRow = [
+          'FILTRAR(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")', // Cliente ID filtrado
+          'FILTRAR(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")', // Producto ID filtrado  
+          'FILTRAR(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")', // Cantidad filtrada
+          'FILTRAR(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")'  // Precio filtrado
         ];
         
-        let auxSheet = XLSX.utils.aoa_to_sheet(auxData);
+        // Insertar las fórmulas como texto en las celdas
+        for (let col = 0; col < formulaRow.length; col++) {
+          const cellRef = XLSX.utils.encode_cell({ r: 1, c: col });
+          auxSheet[cellRef] = { 
+            t: 'str', 
+            v: formulaRow[col],
+            f: formulaRow[col]
+          };
+        }
         
         auxSheet = formatWorksheet(auxSheet, auxHeaders);
         XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
