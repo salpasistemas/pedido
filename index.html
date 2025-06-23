@@ -26,10 +26,7 @@
       justify-content: center;
       align-items: center;
     }
-    header img {
-      height: 40px;
-      margin-right: 10px;
-    }
+    header img { height: 40px; margin-right: 10px; }
     .logo { height: 50px; width: 132px; }
     .container {
       background: white;
@@ -41,160 +38,52 @@
       text-align: center;
     }
     h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
-    .description {
-      color: #555;
-      margin-bottom: 30px;
-      font-size: 16px;
-      line-height: 1.6;
-    }
+    .description { color: #555; margin-bottom: 30px; font-size: 16px; line-height: 1.6; }
+    .features, .download-zone, .next-step { margin: 20px 0; }
+    .features { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; text-align: left; }
+    .features h3 { color: #2e7d32; margin-bottom: 15px; font-size: 18px; }
+    .features ul { list-style: none; padding: 0; }
+    .features li { margin: 8px 0; padding-left: 20px; position: relative; }
+    .features li::before { content: "✓"; position: absolute; left: 0; color: #4caf50; font-weight: bold; }
     .download-zone {
       border: 3px solid #658c68;
       border-radius: 15px;
       padding: 60px 20px;
-      margin: 30px 0;
       background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%);
       transition: all 0.3s ease;
+      text-align: center;
     }
-    .download-zone:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(101, 140, 104, 0.2);
-    }
-    .download-icon { font-size: 48px; margin-bottom: 15px; color: #658c68; }
-    .download-text { font-size: 18px; color: #444; margin-bottom: 10px; font-weight: 600; }
+    .download-zone:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(101,140,104,0.2); }
+    .download-icon { font-size: 48px; color: #658c68; }
+    .download-text { font-size: 18px; color: #444; font-weight: 600; margin: 10px 0; }
     .download-hint { font-size: 14px; color: #666; line-height: 1.4; }
     .download-btn {
       background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
-      color: white;
-      border: none;
-      padding: 15px 40px;
-      border-radius: 25px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-top: 20px;
-      min-width: 200px;
-      box-shadow: 0 4px 15px rgba(101, 140, 104, 0.3);
+      color: white; border: none; padding: 15px 40px; border-radius: 25px;
+      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(101,140,104,0.3);
     }
-    .download-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(101, 140, 104, 0.4);
-    }
-    .download-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .status {
-      margin-top: 30px;
-      padding: 15px;
-      border-radius: 10px;
-      display: none;
-      text-align: left;
-    }
-    .status.success {
-      background: #e8f5e8;
-      color: #2e7d32;
-      border: 1px solid #4caf50;
-    }
-    .status.error {
-      background: #ffebee;
-      color: #c62828;
-      border: 1px solid #f44336;
-    }
-    .status.processing {
-      background: #fff8e1;
-      color: #ef6c00;
-      border: 1px solid #ff9800;
-    }
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid #658c68;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #f0f0f0;
-      border-radius: 4px;
-      margin: 15px 0;
-      overflow: hidden;
-      display: none;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #658c68 0%, #7da57f 100%);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-    .next-step {
-      background: #f3e5f5;
-      border: 1px solid #9c27b0;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 30px;
-      text-align: left;
-    }
-    .next-step-title { font-weight: 600; color: #7b1fa2; margin-bottom: 10px; }
-    .upload-link {
-      color: #7b1fa2;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .upload-link:hover { text-decoration: underline; }
-    .features {
-      background: #e8f5e8;
-      border: 1px solid #4caf50;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-      text-align: left;
-    }
-    .features h3 {
-      color: #2e7d32;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-    .features ul {
-      list-style: none;
-      padding: 0;
-    }
-    .features li {
-      margin: 8px 0;
-      padding-left: 20px;
-      position: relative;
-    }
-    .features li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #4caf50;
-      font-weight: bold;
-    }
+    .download-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(101,140,104,0.4); }
+    .download-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .status { margin-top: 30px; padding: 15px; border-radius: 10px; display: none; text-align: left; }
+    .status.success { background: #e8f5e8; color: #2e7d32; border: 1px solid #4caf50; }
+    .status.error { background: #ffebee; color: #c62828; border: 1px solid #f44336; }
+    .status.processing { background: #fff8e1; color: #ef6c00; border: 1px solid #ff9800; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3;	border-top: 2px solid #658c68; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+    .progress-bar { width: 100%; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; display: none; margin: 15px 0; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg,#658c68 0%,#7da57f 100%); width:0%; transition:width 0.3s ease; }
+    .next-step { background: #f3e5f5; border: 1px solid #9c27b0; border-radius:10px; padding:20px; text-align:left; }
+    .next-step-title { font-weight:600; color:#7b1fa2; margin-bottom:10px; }
+    .upload-link { color:#7b1fa2; text-decoration:none; font-weight:600; }
+    .upload-link:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="Logo Salpa" class="logo">
-  </header>
-
+  <header><img src="logo.png" alt="Logo Salpa" class="logo"></header>
   <div class="container">
     <h2>📦 Descargar Stock Disponible</h2>
-
-    <div class="description">
-      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
-    </div>
-
+    <div class="description">Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.</div>
     <div class="features">
       <h3>🚀 Nuevo formato mejorado:</h3>
       <ul>
@@ -202,27 +91,18 @@
         <li>Nombres de productos limpios (sin códigos entre corchetes)</li>
         <li>Precios con descuento automático del 60%</li>
         <li>Cálculo automático de subtotales</li>
-        <li>Filtrado automático de productos solicitados</li>
+        <li>Filtrado automático de productos solicitados en AUX_IMPORT</li>
       </ul>
     </div>
-
     <div class="download-zone">
       <div class="download-icon">📊</div>
       <div class="download-text">Stock de Ubicación 8</div>
       <div class="download-hint">Descuento 60%<br>Se generará un archivo Excel optimizado</div>
     </div>
-
-    <button class="download-btn" id="downloadBtn">
-      <span id="downloadBtnText">📥 Descargar Stock Actual</span>
-    </button>
-
+    <button class="download-btn" id="downloadBtn"><span id="downloadBtnText">📥 Descargar Stock Actual</span></button>
     <div class="status" id="status"></div>
-
-    <div class="progress-bar" id="progressBar">
-      <div class="progress-fill" id="progressFill"></div>
-    </div>
-
-    <div class="next-step" style="display: none;" id="nextStep">
+    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="next-step" id="nextStep" style="display:none;">
       <div class="next-step-title">🚀 Siguiente paso:</div>
       <p>
         1. Abre el archivo Excel descargado<br>
@@ -233,10 +113,8 @@
       </p>
     </div>
   </div>
-
   <script>
     const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
-
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
     const status = document.getElementById('status');
@@ -244,148 +122,86 @@
     const progressFill = document.getElementById('progressFill');
     const nextStep = document.getElementById('nextStep');
 
-    function showStatus(type, message) {
-      status.className = `status ${type}`;
-      status.innerHTML = message;
-      status.style.display = 'block';
-    }
+    function showStatus(type, msg) { status.className = `status ${type}`; status.innerHTML = msg; status.style.display = 'block'; }
+    function setProgress(p) { progressFill.style.width = `${p}%`; progressBar.style.display = 'block'; }
 
-    function setProgress(percent) {
-      progressFill.style.width = percent + '%';
-      progressBar.style.display = 'block';
-    }
+    function cleanProductName(name) { return name.replace(/^\[.*?\]\s*/, '').trim(); }
 
-    function cleanProductName(displayName) {
-      return displayName.replace(/^\[.*?\]\s*/, '').trim();
-    }
-
-    function formatWorksheet(worksheet, headers) {
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
-      // Configurar anchos de columna
-      const colWidths = {
-        0: { width: 0 },   // Producto ID oculto
-        1: { width: 0 },   // Cliente ID oculto
-        2: { width: 40 },  // Producto
-        3: { width: 15 },  // Stock
-        4: { width: 0 },   // Precio Base oculto
-        5: { width: 12 },  // Precio con descuento
-        6: { width: 12 },  // Cantidad
-        7: { width: 15 }   // Subtotal
-      };
-      worksheet['!cols'] = Object.values(colWidths);
-      // Encabezados
-      headers.forEach((header, i) => {
-        const cell = XLSX.utils.encode_cell({ r: 0, c: i });
-        if (worksheet[cell]) {
-          worksheet[cell].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "658C68" } },
-            alignment: { horizontal: "center", vertical: "center" }
-          };
-        }
+    function formatWorksheet(ws, headers, sheetName) {
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      let cols;
+      if (sheetName === 'PEDIDO') {
+        cols = [ {width:0},{width:0},{width:40},{width:15},{width:0},{width:12},{width:12},{width:15} ];
+      } else {
+        cols = headers.map(() => ({ width: 20 }));
+      }
+      ws['!cols'] = cols;
+      headers.forEach((h,i) => {
+        const cell = XLSX.utils.encode_cell({r:0,c:i});
+        if (ws[cell]) ws[cell].s = { font:{bold:true,color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"658C68"}}, alignment:{horizontal:"center",vertical:"center"} };
       });
-      // Formato numérico
-      const priceBaseIdx = headers.indexOf('Precio Base');
-      const priceIdx = headers.indexOf('Precio');
-      const subtotalIdx = headers.indexOf('Subtotal');
-      for (let r = 1; r <= range.e.r; r++) {
-        ['Precio Base', 'Precio', 'Subtotal'].forEach((_, idx) => {
-          const colIndex = [priceBaseIdx, priceIdx, subtotalIdx][idx];
-          const addr = XLSX.utils.encode_cell({ r, c: colIndex });
-          if (worksheet[addr]) worksheet[addr].z = '"$"#,##0.00';
+      // Numeric formatting
+      const idxs = { 'Precio Base':headers.indexOf('Precio Base'), 'Precio':headers.indexOf('Precio'), 'Subtotal':headers.indexOf('Subtotal') };
+      for (let r=1; r<=range.e.r; r++) {
+        Object.values(idxs).forEach(ci => {
+          const cell = XLSX.utils.encode_cell({r,c:ci}); if (ws[cell]) ws[cell].z = '"$"#,##0.00';
         });
       }
-      return worksheet;
+      return ws;
     }
 
     async function downloadStock() {
       try {
         downloadBtn.disabled = true;
         downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing', '🔄 Conectando a Odoo...');
-        setProgress(15);
+        showStatus('processing','🔄 Conectando a Odoo...'); setProgress(15);
 
-        const response = await fetch(API_URL, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
-        });
+        const resp = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location_id:8,pricelist_id:5})});
+        setProgress(45); showStatus('processing','📊 Procesando datos...');
+        const data = await resp.json(); if (!data.success||!data.products.length) throw new Error(data.error||'No products');
 
-        setProgress(45);
-        showStatus('processing', '📊 Procesando datos...');
+        setProgress(70); showStatus('processing','📄 Generando Excel...');
+        const wb = XLSX.utils.book_new(); wb.Workbook = { CalcPr:{ fullCalcOnLoad:true } };
 
-        const data = await response.json();
-        if (!data.success || !data.products.length) throw new Error(data.error || 'No se encontraron productos.');
-
-        setProgress(70);
-        showStatus('processing', '📄 Generando Excel...');
-
-        const wb = XLSX.utils.book_new();
-        // Forzar recálculo al abrir
-        wb.Workbook = wb.Workbook || {};
-        wb.Workbook.CalcPr = { fullCalcOnLoad: true };
-
-        // Hoja PEDIDO
-        const pedidoHeaders = ['Producto ID','Cliente ID','Producto','Stock Disponible','Precio Base','Precio','Cantidad','Subtotal'];
-        const pedidoRows = data.products.map((p,i) => [
-          p.product_id,
-          1,
-          cleanProductName(p.display_name || p.name),
-          p.qty_available,
-          p.price,
-          p.price * 0.4,
-          '',
-          { f: `IF(G${i+2}="","",F${i+2}*G${i+2})` }
+        // PEDIDO
+        const pedidoH=['Producto ID','Cliente ID','Producto','Stock Disponible','Precio Base','Precio','Cantidad','Subtotal'];
+        const pedidoRows = data.products.map((p,i)=>[
+          p.product_id,1,cleanProductName(p.display_name||p.name),p.qty_available,p.price,p.price*0.4,'',{ f:`IF(G${i+2}<>"",F${i+2}*G${i+2},"")` }
         ]);
-        let pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
-        pedidoSheet = formatWorksheet(pedidoSheet, pedidoHeaders);
-        pedidoSheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{c:0,r:0}, e:{c:pedidoHeaders.length-1,r:pedidoRows.length} })};
-        XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
+        let ps = XLSX.utils.aoa_to_sheet([pedidoH,...pedidoRows]);
+        ps = formatWorksheet(ps,pedidoH,'PEDIDO');
+        ps['!autofilter']={ref:XLSX.utils.encode_range({s:{c:0,r:0},e:{c:pedidoH.length-1,r:pedidoRows.length}})};
+        XLSX.utils.book_append_sheet(wb,ps,'PEDIDO');
 
-        // Hoja AUX_IMPORT
-        const auxHeaders = ['Cliente ID','Producto ID','Cantidad','Precio'];
-        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders]);
-        const formulas = [
-          'FILTRAR(PEDIDO!B2:B30000;PEDIDO!F2:F30000<>\"\")',
-          'FILTRAR(PEDIDO!A2:A30000;PEDIDO!F2:F30000<>\"\")',
-          'FILTRAR(PEDIDO!F2:F30000;PEDIDO!F2:F30000<>\"\")',
-          'FILTRAR(PEDIDO!E2:E30000;PEDIDO!F2:F30000<>\"\")'
+        // AUX_IMPORT
+        const auxH=['Cliente ID','Producto ID','Cantidad','Precio'];
+        let aux = XLSX.utils.aoa_to_sheet([auxH]);
+        const f = [
+          'FILTRAR(PEDIDO!B2:B30000;PEDIDO!G2:G30000<>"")',
+          'FILTRAR(PEDIDO!A2:A30000;PEDIDO!G2:G30000<>"")',
+          'FILTRAR(PEDIDO!G2:G30000;PEDIDO!G2:G30000<>"")',
+          'FILTRAR(PEDIDO!F2:F30000;PEDIDO!G2:G30000<>"")'
         ];
-        XLSX.utils.sheet_add_aoa(auxSheet, [formulas], { origin:{r:1,c:0} });
-        for(let c=0;c<formulas.length;c++){
-          const cell = XLSX.utils.encode_cell({ r:1, c });
-          if(auxSheet[cell]) auxSheet[cell] = { f: formulas[c] };
-        }
-        auxSheet = formatWorksheet(auxSheet, auxHeaders);
-        XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
+        XLSX.utils.sheet_add_aoa(aux,[f],{origin:{r:1,c:0}});
+        for(let c=0;c<f.length;c++){const cell=XLSX.utils.encode_cell({r:1,c});if(aux[cell])aux[cell]={f:f[c]};}
+        aux = formatWorksheet(aux,auxH,'AUX_IMPORT');
+        XLSX.utils.book_append_sheet(wb,aux,'AUX_IMPORT');
 
-        // Visibilidad de hojas
-        wb.Workbook.Sheets = [
-          { name:'PEDIDO', Hidden:0 },
-          { name:'AUX_IMPORT', Hidden:1 }
-        ];
+        // Visibility
+        wb.Workbook.Sheets=[{name:'PEDIDO',Hidden:0},{name:'AUX_IMPORT',Hidden:1}];
 
-        setProgress(90);
-        showStatus('processing', '💾 Finalizando descarga...');
-
-        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb, filename);
-
-        setProgress(100);
-        showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
-        nextStep.style.display = 'block';
-      } catch(err) {
-        console.error(err);
-        showStatus('error', `❌ Error: ${err.message}`);
-        setProgress(0);
+        setProgress(90); showStatus('processing','💾 Finalizando descarga...');
+        const fn=`pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb,fn);
+        setProgress(100); showStatus('success',`✅ ¡Descargado!<br><strong>${fn}</strong><br>Items: ${data.products.length}`);
+        nextStep.style.display='block';
+      } catch(e) {
+        console.error(e); showStatus('error',`❌ Error: ${e.message}`); setProgress(0);
       } finally {
-        setTimeout(()=>{
-          downloadBtn.disabled = false;
-          downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
-        },3000);
+        setTimeout(()=>{downloadBtn.disabled=false;downloadBtnText.innerHTML='📥 Descargar Stock Actual';},3000);
       }
     }
-
-    downloadBtn.addEventListener('click', downloadStock);
+    downloadBtn.addEventListener('click',downloadStock);
   </script>
 </body>
 </html>
