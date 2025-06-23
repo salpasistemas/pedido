@@ -338,8 +338,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             location_id: 8, 
-            pricelist_id: 5,
-            apply_pricelist: true  // Ensure the API applies pricelist
+            pricelist_id: 5
           })
         });
 
@@ -379,25 +378,21 @@
         
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con formulas ya calculadas)
+        // Crear hoja AUX_IMPORT (oculta, con las fórmulas FILTRAR específicas)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Cantidad', 'Precio'];
         
-        // Crear la hoja AUX_IMPORT con datos vacíos inicialmente
-        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders]);
+        // Crear datos iniciales con las fórmulas FILTRAR en la segunda fila
+        const auxData = [
+          auxHeaders,
+          [
+            { f: 'FILTRAR(PEDIDO!B2:B30000,PEDIDO!F2:F30000<>"")' }, // Cliente ID filtrado
+            { f: 'FILTRAR(PEDIDO!A2:A30000,PEDIDO!F2:F30000<>"")' }, // Producto ID filtrado  
+            { f: 'FILTRAR(PEDIDO!F2:F30000,PEDIDO!F2:F30000<>"")' }, // Cantidad filtrada
+            { f: 'FILTRAR(PEDIDO!E2:E30000,PEDIDO!F2:F30000<>"")' }  // Precio filtrado
+          ]
+        ];
         
-        // Añadir las fórmulas FILTRAR directamente como valores calculados
-        const maxRows = Math.min(pedidoRows.length, 1000); // Limit to prevent performance issues
-        
-        for(let i = 1; i <= maxRows; i++) {
-          const rowData = [
-            { f: `IF(PEDIDO!F${i+1}<>"",PEDIDO!B${i+1},"")` }, // Cliente ID si hay cantidad
-            { f: `IF(PEDIDO!F${i+1}<>"",PEDIDO!A${i+1},"")` }, // Producto ID si hay cantidad  
-            { f: `IF(PEDIDO!F${i+1}<>"",PEDIDO!F${i+1},"")` }, // Cantidad si no está vacía
-            { f: `IF(PEDIDO!F${i+1}<>"",PEDIDO!E${i+1},"")` }  // Precio si hay cantidad
-          ];
-          
-          XLSX.utils.sheet_add_aoa(auxSheet, [rowData], { origin: { r: i, c: 0 } });
-        }
+        let auxSheet = XLSX.utils.aoa_to_sheet(auxData);
         
         auxSheet = formatWorksheet(auxSheet, auxHeaders);
         XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
