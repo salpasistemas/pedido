@@ -152,6 +152,35 @@
       font-weight: 600;
     }
     .upload-link:hover { text-decoration: underline; }
+    .features {
+      background: #e8f5e8;
+      border: 1px solid #4caf50;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .features h3 {
+      color: #2e7d32;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .features ul {
+      list-style: none;
+      padding: 0;
+    }
+    .features li {
+      margin: 8px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    .features li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #4caf50;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -166,10 +195,21 @@
       Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
     </div>
 
+    <div class="features">
+      <h3>🚀 Nuevo formato mejorado:</h3>
+      <ul>
+        <li>Hoja "PEDIDO" user-friendly para completar cantidades</li>
+        <li>Nombres de productos limpios (sin códigos entre corchetes)</li>
+        <li>Precios actualizados según lista de precios</li>
+        <li>Cálculo automático de subtotales</li>
+        <li>Filtrado automático de productos solicitados</li>
+      </ul>
+    </div>
+
     <div class="download-zone">
       <div class="download-icon">📊</div>
       <div class="download-text">Stock de Ubicación 8</div>
-      <div class="download-hint">Precios con Lista 5<br>Se generará un archivo Excel listo para completar</div>
+      <div class="download-hint">Precios con Lista 5<br>Se generará un archivo Excel optimizado</div>
     </div>
 
     <button class="download-btn" id="downloadBtn">
@@ -186,9 +226,10 @@
       <div class="next-step-title">🚀 Siguiente paso:</div>
       <p>
         1. Abre el archivo Excel descargado<br>
-        2. Completa las cantidades que deseas pedir<br>
-        3. Guarda el archivo<br>
-        4. <a href="#" class="upload-link">Sube tu pedido aquí</a>
+        2. Ve a la hoja "PEDIDO" y completa las cantidades<br>
+        3. Los subtotales se calcularán automáticamente<br>
+        4. Guarda el archivo<br>
+        5. <a href="#" class="upload-link">Sube tu pedido aquí</a>
       </p>
     </div>
   </div>
@@ -214,6 +255,60 @@
       progressBar.style.display = 'block';
     }
 
+    // Función para limpiar el nombre del producto (remover códigos entre corchetes)
+    function cleanProductName(displayName) {
+      // Remover texto entre corchetes al principio del nombre
+      return displayName.replace(/^\[.*?\]\s*/, '').trim();
+    }
+
+    // Función para aplicar formato profesional a las hojas
+    function formatWorksheet(ws, headers) {
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      
+      // Configurar anchos de columna
+      const colWidths = {
+        0: 15, // Cliente ID
+        1: 12, // Producto ID  
+        2: 15, // Código
+        3: 40, // Producto
+        4: 15, // Stock
+        5: 12, // Precio
+        6: 12, // Cantidad
+        7: 15  // Subtotal
+      };
+      
+      ws['!cols'] = Object.keys(colWidths).map(i => ({ width: colWidths[i] }));
+      
+      // Formatear celdas de encabezado
+      for (let col = 0; col <= headers.length - 1; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "658C68" } },
+            alignment: { horizontal: "center", vertical: "center" }
+          };
+        }
+      }
+      
+      // Formatear columnas de números
+      for (let row = 1; row <= range.e.r; row++) {
+        // Formatear precio (columna 5)
+        const priceCell = XLSX.utils.encode_cell({ r: row, c: 5 });
+        if (ws[priceCell]) {
+          ws[priceCell].z = '"$"#,##0.00';
+        }
+        
+        // Formatear subtotal (columna 7)
+        const subtotalCell = XLSX.utils.encode_cell({ r: row, c: 7 });
+        if (ws[subtotalCell]) {
+          ws[subtotalCell].z = '"$"#,##0.00';
+        }
+      }
+      
+      return ws;
+    }
+
     async function downloadStock() {
       try {
         downloadBtn.disabled = true;
@@ -235,29 +330,104 @@
           throw new Error(data.error || 'No se encontraron productos.');
         }
 
+        setProgress(70);
+        showStatus('processing', '📄 Generando Excel...');
+
         const wb = XLSX.utils.book_new();
-        const headers = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Descripción', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-        const rows = data.products.map(p => [1, p.product_id, p.default_code, p.name, p.description || p.name, p.qty_available, p.price, '', '']);
-        const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-        sheet['!cols'] = headers.map(() => ({ width: 15 }));
-        XLSX.utils.book_append_sheet(wb, sheet, 'AUX_IMPORT');
+        
+        // Crear hoja PEDIDO (visible y user-friendly)
+        const pedidoHeaders = ['Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
+        const pedidoRows = data.products.map(p => [
+          cleanProductName(p.name), // Nombre limpio sin códigos
+          p.qty_available,
+          p.price,
+          '', // Cantidad vacía para que el usuario complete
+          { f: `C${data.products.indexOf(p) + 2}*D${data.products.indexOf(p) + 2}` } // Fórmula para subtotal
+        ]);
+        
+        const pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
+        pedidoSheet = formatWorksheet(pedidoSheet, pedidoHeaders);
+        
+        // Agregar filtros automáticos
+        pedidoSheet['!autofilter'] = { ref: XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: pedidoHeaders.length - 1, r: pedidoRows.length }
+        })};
+        
+        XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // INSTRUCCIONES
+        // Crear hoja AUX_IMPORT (oculta, con datos completos para el sistema)
+        const auxHeaders = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
+        const auxRows = data.products.map(p => [
+          1, // Cliente ID fijo
+          p.product_id,
+          p.default_code || '',
+          p.name, // Nombre completo original
+          p.qty_available,
+          p.price,
+          '', // Cantidad vacía
+          '' // Subtotal vacío
+        ]);
+        
+        const auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders, ...auxRows]);
+        auxSheet = formatWorksheet(auxSheet, auxHeaders);
+        XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
+        
+        // Ocultar la hoja AUX_IMPORT
+        wb.Workbook = wb.Workbook || {};
+        wb.Workbook.Sheets = wb.Workbook.Sheets || [];
+        wb.Workbook.Sheets.push({ name: 'AUX_IMPORT', Hidden: 1 });
+
+        // Crear hoja de INSTRUCCIONES mejorada
         const instrucciones = [
-          ['📋 INSTRUCCIONES'], [''], ['1. Completa cantidades en la columna "Cantidad"'], ['2. Guarda y sube el archivo en el sistema']
+          ['📋 INSTRUCCIONES DE USO'],
+          [''],
+          ['🎯 Cómo usar este archivo:'],
+          [''],
+          ['1. Ve a la hoja "PEDIDO"'],
+          ['2. Revisa los productos disponibles y sus precios'],
+          ['3. Completa la columna "Cantidad" con lo que deseas pedir'],
+          ['4. Los subtotales se calcularán automáticamente'],
+          ['5. Guarda el archivo cuando termines'],
+          ['6. Sube el archivo al sistema para procesar tu pedido'],
+          [''],
+          ['💡 Consejos:'],
+          ['• Usa los filtros para encontrar productos específicos'],
+          ['• Solo se procesarán productos con cantidad mayor a 0'],
+          ['• Verifica el stock disponible antes de pedir'],
+          ['• Los precios ya incluyen la lista de precios configurada'],
+          [''],
+          ['⚠️ Importante:'],
+          ['• No modifies los nombres de las hojas'],
+          ['• No elimines columnas ni filas de encabezado'],
+          ['• La hoja AUX_IMPORT contiene datos del sistema (no modificar)']
         ];
-        const sheet2 = XLSX.utils.aoa_to_sheet(instrucciones);
-        sheet2['!cols'] = [{ width: 60 }];
-        XLSX.utils.book_append_sheet(wb, sheet2, 'INSTRUCCIONES');
+        
+        const instrSheet = XLSX.utils.aoa_to_sheet(instrucciones);
+        instrSheet['!cols'] = [{ width: 60 }];
+        
+        // Formatear título
+        if (instrSheet['A1']) {
+          instrSheet['A1'].s = {
+            font: { bold: true, size: 16, color: { rgb: "2e7d32" } },
+            alignment: { horizontal: "center" }
+          };
+        }
+        
+        XLSX.utils.book_append_sheet(wb, instrSheet, 'INSTRUCCIONES');
 
-        const filename = `stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        setProgress(90);
+        showStatus('processing', '💾 Finalizando descarga...');
+
+        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
         XLSX.writeFile(wb, filename);
 
         setProgress(100);
-        showStatus('success', `✅ ¡Descargado! ${filename}`);
+        showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
         nextStep.style.display = 'block';
 
       } catch (err) {
+        console.error('Error:', err);
         showStatus('error', `❌ Error: ${err.message}`);
         setProgress(0);
       } finally {
