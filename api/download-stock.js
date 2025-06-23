@@ -130,15 +130,47 @@ export default async function handler(req, res) {
     const productPrices = {};
     const pricePromises = products.map(async product => {
       try {
-        const price = await xmlrpcCall(models, 'execute_kw', [
+        // Usar el método correcto para obtener precios de pricelist
+        const priceResult = await xmlrpcCall(models, 'execute_kw', [
           ODOO_DB, uid, ODOO_PASSWORD,
-          'product.pricelist', 'get_product_price',
+          'product.pricelist', 'price_get',
           [parseInt(pricelist_id), product.id, 1]
         ]);
-        productPrices[product.id] = price || product.list_price || 0;
+        
+        // Si price_get no funciona, intentar con get_product_price
+        if (!priceResult || typeof priceResult !== 'number') {
+          const altPrice = await xmlrpcCall(models, 'execute_kw', [
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'product.pricelist', 'get_product_price',
+            [parseInt(pricelist_id), product.id, 1]
+          ]);
+          productPrices[product.id] = altPrice || product.list_price || 0;
+        } else {
+          productPrices[product.id] = priceResult;
+        }
       } catch (err) {
         console.error(`Error getting price for product ${product.id}:`, err.message);
-        productPrices[product.id] = product.list_price || 0;
+        // Como último recurso, intentar buscar precio directo en product.pricelist.item
+        try {
+          const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'product.pricelist.item', 'search_read',
+            [[
+              ['pricelist_id', '=', parseInt(pricelist_id)],
+              ['product_id', '=', product.id]
+            ], ['fixed_price', 'price_discount', 'percent_price']]
+          ]);
+          
+          if (pricelistItems.length > 0) {
+            const item = pricelistItems[0];
+            productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
+          } else {
+            productPrices[product.id] = product.list_price || 0;
+          }
+        } catch (itemErr) {
+          console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
+          productPrices[product.id] = product.list_price || 0;
+        }
       }
     });
 
