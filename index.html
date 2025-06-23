@@ -67,10 +67,17 @@
   </style>
 </head>
 <body>
-  <header><img src="logo.png" alt="Logo Salpa" class="logo"></header>
+  <header>
+    <img src="logo.png" alt="Logo Salpa" class="logo">
+  </header>
+
   <div class="container">
     <h2>📦 Descargar Stock Disponible</h2>
-    <div class="description">Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.</div>
+
+    <div class="description">
+      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
+    </div>
+
     <div class="features">
       <h3>🚀 Nuevo formato mejorado:</h3>
       <ul>
@@ -81,14 +88,23 @@
         <li>Filtrado automático de productos solicitados en AUX_IMPORT</li>
       </ul>
     </div>
+
     <div class="download-zone">
       <div class="download-icon">📊</div>
       <div class="download-text">Stock de Ubicación 8</div>
       <div class="download-hint">Descuento 60%<br>Se generará un archivo Excel optimizado</div>
     </div>
-    <button class="download-btn" id="downloadBtn"><span id="downloadBtnText">📥 Descargar Stock Actual</span></button>
+
+    <button class="download-btn" id="downloadBtn">
+      <span id="downloadBtnText">📥 Descargar Stock Actual</span>
+    </button>
+
     <div class="status" id="status"></div>
-    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
     <div class="next-step" id="nextStep" style="display:none;">
       <div class="next-step-title">🚀 Siguiente paso:</div>
       <p>
@@ -100,6 +116,7 @@
       </p>
     </div>
   </div>
+
   <script>
     const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
     const TEMPLATE_PATH = '/templates/pedido_template.xlsx';
@@ -110,9 +127,20 @@
     const progressFill = document.getElementById('progressFill');
     const nextStep = document.getElementById('nextStep');
 
-    function showStatus(type, msg) { status.className = `status ${type}`; status.innerHTML = msg; status.style.display = 'block'; }
-    function setProgress(p) { progressFill.style.width = `${p}%`; progressBar.style.display = 'block'; }
-    function cleanProductName(name) { return name.replace(/^\[.*?\]\s*/, '').trim(); }
+    function showStatus(type, msg) {
+      status.className = `status ${type}`;
+      status.innerHTML = msg;
+      status.style.display = 'block';
+    }
+
+    function setProgress(p) {
+      progressFill.style.width = `${p}%`;
+      progressBar.style.display = 'block';
+    }
+
+    function cleanProductName(name) {
+      return name.replace(/^\[.*?\]\s*/, '').trim();
+    }
 
     async function loadTemplate() {
       const res = await fetch(TEMPLATE_PATH);
@@ -120,7 +148,6 @@
       return XLSX.read(buf, { type: 'array', cellStyles: true });
     }
 
-    // Overwrite PEDIDO sheet rows while preserving header formatting
     function populatePedidoSheet(wb, products) {
       const sheetName = 'PEDIDO';
       const ws = wb.Sheets[sheetName];
@@ -145,37 +172,3 @@
     async function downloadStock() {
       try {
         downloadBtn.disabled = true;
-        downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing','🔄 Cargando plantilla...'); setProgress(10);
-
-        const wb = await loadTemplate();
-        wb.Workbook = wb.Workbook || {};
-        wb.Workbook.CalcPr = { fullCalcOnLoad:true };
-
-        showStatus('processing','🔄 Conectando a Odoo...'); setProgress(30);
-        const resp = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location_id:8,pricelist_id:5})});
-        const data = await resp.json(); if(!data.success||!data.products.length) throw new Error(data.error||'No products');
-
-        showStatus('processing','📄 Poblando hoja PEDIDO...'); setProgress(60);
-        populatePedidoSheet(wb, data.products);
-
-        showStatus('processing','💾 Generando archivo...'); setProgress(80);
-        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb, filename);
-
-        setProgress(100);
-        showStatus('success',`✅ Descargado: <strong>${filename}</strong><br>Items: ${data.products.length}`);
-        nextStep.style.display='block';
-      } catch(e) {
-        console.error(e);
-        showStatus('error',`❌ Error: ${e.message}`);
-        setProgress(0);
-      } finally {
-        setTimeout(()=>{ downloadBtn.disabled=false; downloadBtnText.innerHTML='📥 Descargar Stock Actual'; },3000);
-      }
-    }
-
-    downloadBtn.addEventListener('click', downloadStock);
-  </script>
-</body>
-</html>
