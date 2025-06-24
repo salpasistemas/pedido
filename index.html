@@ -225,100 +225,100 @@
       </p>
     </div>
   </div>
-  <script>
-    // ENDPOINTS
-    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock'; // Node.js: consulta a Odoo
-    const PYTHON_EXCEL_URL = 'https://pedido2-five.vercel.app/api/generate_excel'; // Python: genera y devuelve Excel con formato
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
+const TEMPLATE_URL = 'templates/peddo_template.xlsx';
 
-    const downloadBtn = document.getElementById('downloadBtn');
-    const downloadBtnText = document.getElementById('downloadBtnText');
-    const status = document.getElementById('status');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const nextStep = document.getElementById('nextStep');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadBtnText = document.getElementById('downloadBtnText');
+const status = document.getElementById('status');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const nextStep = document.getElementById('nextStep');
 
-    function showStatus(type, message) {
-      status.className = "status " + type;
-      status.innerHTML = message;
-      status.style.display = 'block';
+function showStatus(type, message) {
+  status.className = "status " + type;
+  status.innerHTML = message;
+  status.style.display = 'block';
+}
+
+function setProgress(percent) {
+  progressFill.style.width = percent + '%';
+  progressBar.style.display = 'block';
+}
+
+function cleanProductName(displayName) {
+  return displayName.replace(/^\[.*?\]\s*/, '').trim();
+}
+
+async function downloadStock() {
+  try {
+    downloadBtn.disabled = true;
+    downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
+    showStatus('processing', '🔄 Consultando productos...');
+    setProgress(15);
+
+    // 1. Obtené los productos desde tu API Node.js
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
+    });
+
+    setProgress(40);
+    showStatus('processing', '📊 Procesando datos...');
+    const data = await response.json();
+    if (!data.success || !data.products.length) {
+      throw new Error(data.error || 'No se encontraron productos.');
     }
 
-    function setProgress(percent) {
-      progressFill.style.width = percent + '%';
-      progressBar.style.display = 'block';
-    }
+    setProgress(55);
+    showStatus('processing', '📄 Descargando plantilla Excel...');
+    const responseTemplate = await fetch(TEMPLATE_URL);
+    const arrayBuffer = await responseTemplate.arrayBuffer();
+    const wb = XLSX.read(arrayBuffer, { type: "array" });
 
-    function cleanProductName(displayName) {
-      return displayName.replace(/^\[.*?\]\s*/, '').trim();
-    }
+    setProgress(65);
+    showStatus('processing', '🔎 Armando tu archivo...');
 
-    async function downloadStock() {
-      try {
-        downloadBtn.disabled = true;
-        downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing', '🔄 Consultando productos...');
-        setProgress(15);
+    // AJUSTÁ ESTO según el orden de columnas de tu template PEDIDO:
+    // Ejemplo de orden: [Cliente ID, Producto ID, Cantidad, Precio, Producto, Stock Disponible]
+    const pedidoSheet = wb.Sheets["PEDIDO"];
+    const pedidoRows = data.products.map((p) => [
+      1, // Cliente ID
+      p.product_id, // Producto ID
+      '', // Cantidad vacía, el usuario la llena después
+      Math.round((p.price * 0.4) * 100) / 100, // Precio con 60% descuento
+      cleanProductName(p.display_name || p.name),
+      p.qty_available
+    ]);
+    XLSX.utils.sheet_add_aoa(pedidoSheet, pedidoRows, { origin: 'A2', overwrite: true });
 
-        // 1. Obtené los productos desde tu API Node.js
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
-        });
+    setProgress(80);
 
-        setProgress(40);
-        showStatus('processing', '📊 Procesando datos...');
-        const data = await response.json();
-        if (!data.success || !data.products.length) {
-          throw new Error(data.error || 'No se encontraron productos.');
-        }
+    // Guardar archivo como: pedido_stock_ubicacion_8_FECHA.xlsx
+    const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
 
-        setProgress(65);
-        showStatus('processing', '⏳ Generando archivo Excel con formato...');
+    setProgress(100);
+    showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
+    nextStep.style.display = 'block';
 
-        // 2. Mandá los productos a la función Python (Vercel)
-        const responseExcel = await fetch(PYTHON_EXCEL_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ products: data.products })
-        });
+  } catch (err) {
+    console.error('Error:', err);
+    showStatus('error', `❌ Error: ${err.message}`);
+    setProgress(0);
+  } finally {
+    setTimeout(() => {
+      downloadBtn.disabled = false;
+      downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
+    }, 3000);
+  }
+}
 
-        if (!responseExcel.ok) {
-          throw new Error('No se pudo generar el archivo Excel.');
-        }
+document.getElementById('downloadBtn').addEventListener('click', downloadStock);
+</script>
 
-        setProgress(90);
-        showStatus('processing', '💾 Descargando archivo...');
-
-        // 3. Descargá el archivo
-        const blob = await responseExcel.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-
-        setProgress(100);
-        showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
-        nextStep.style.display = 'block';
-
-      } catch (err) {
-        console.error('Error:', err);
-        showStatus('error', `❌ Error: ${err.message}`);
-        setProgress(0);
-      } finally {
-        setTimeout(() => {
-          downloadBtn.disabled = false;
-          downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
-        }, 3000);
-      }
-    }
-
-    document.getElementById('downloadBtn').addEventListener('click', downloadStock);
-  </script>
 </body>
 </html>
