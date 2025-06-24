@@ -260,19 +260,15 @@
         showStatus('processing', '🔄 Conectando a Odoo...');
         setProgress(15);
 
-        // 1. Pedir stock a la API
+        // 1. Traer datos de API
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            location_id: 8, 
-            pricelist_id: 5
-          })
+          body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
         });
 
         setProgress(40);
         showStatus('processing', '📊 Procesando datos...');
-
         const data = await response.json();
         if (!data.success || !data.products.length) {
           throw new Error(data.error || 'No se encontraron productos.');
@@ -280,8 +276,6 @@
 
         setProgress(55);
         showStatus('processing', '📄 Descargando plantilla Excel...');
-
-        // 2. Descargar plantilla Excel
         const responseTemplate = await fetch(TEMPLATE_URL);
         const arrayBuffer = await responseTemplate.arrayBuffer();
         const wb = XLSX.read(arrayBuffer, { type: "array" });
@@ -289,34 +283,34 @@
         setProgress(65);
         showStatus('processing', '🔎 Armando tu archivo...');
 
-        // 3. Insertar datos en hoja PEDIDO
+        // 2. Insertar datos en PEDIDO desde la fila 2, SOLO valores
         const pedidoSheet = wb.Sheets["PEDIDO"];
-        // CABECERA esperada: ['Producto ID', 'Cliente ID', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal']
-        const pedidoRows = data.products.map((p, index) => [
-          p.product_id,
-          1,
-          cleanProductName(p.display_name || p.name),
-          p.qty_available,
-          Math.round((p.price * 0.4) * 100) / 100, // 60% descuento, 2 decimales
-          '',
-          { f: `IF(F${index + 2}="", "", E${index + 2}*F${index + 2})` }
+
+        // ¡ATENCIÓN! Debe coincidir el orden exacto de columnas del template:
+        // Ejemplo: [Cliente ID, Producto ID, Cantidad, Precio, Producto, Stock Disponible]
+        // Modifica el siguiente array si tu plantilla tiene otro orden de columnas.
+        const pedidoRows = data.products.map((p) => [
+          1, // Cliente ID
+          p.product_id, // Producto ID
+          '', // Cantidad (el usuario lo llena)
+          Math.round((p.price * 0.4) * 100) / 100, // Precio con 60% descuento, 2 decimales
+          cleanProductName(p.display_name || p.name), // Nombre limpio
+          p.qty_available // Stock
         ]);
         // Sobrescribe desde la fila 2
-        XLSX.utils.sheet_add_aoa(pedidoSheet, pedidoRows, { origin: 'A2' });
+        XLSX.utils.sheet_add_aoa(pedidoSheet, pedidoRows, { origin: 'A2', overwrite: true });
 
         setProgress(80);
 
-        // 4. Configurar visibilidad de hojas
+        // 3. Visibilidad de hojas (PEDIDO visible, AUX_IMPORT oculta)
         wb.Workbook = wb.Workbook || {};
         wb.Workbook.Sheets = [
-          { name: 'PEDIDO', Hidden: 0 },    // PEDIDO visible
-          { name: 'AUX_IMPORT', Hidden: 1 } // AUX_IMPORT oculta
+          { name: 'PEDIDO', Hidden: 0 },
+          { name: 'AUX_IMPORT', Hidden: 1 }
         ];
 
         setProgress(90);
         showStatus('processing', '💾 Finalizando descarga...');
-
-        // 5. Descargar archivo
         const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
         XLSX.writeFile(wb, filename);
 
