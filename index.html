@@ -6,7 +6,6 @@
   <title>Descargar Stock - Crear Pedido</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -227,8 +226,9 @@
     </div>
   </div>
   <script>
-    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
-    const TEMPLATE_URL = 'templates/peddo_template.xlsx';
+    // ENDPOINTS
+    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock'; // Node.js: consulta a Odoo
+    const PYTHON_EXCEL_URL = 'https://pedido2-five.vercel.app/api/generate_excel'; // Python: genera y devuelve Excel con formato
 
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
@@ -248,7 +248,6 @@
       progressBar.style.display = 'block';
     }
 
-    // Limpia el nombre del producto (quita códigos entre corchetes)
     function cleanProductName(displayName) {
       return displayName.replace(/^\[.*?\]\s*/, '').trim();
     }
@@ -257,10 +256,10 @@
       try {
         downloadBtn.disabled = true;
         downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing', '🔄 Conectando a Odoo...');
+        showStatus('processing', '🔄 Consultando productos...');
         setProgress(15);
 
-        // 1. Traer datos de API
+        // 1. Obtené los productos desde tu API Node.js
         const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -274,45 +273,34 @@
           throw new Error(data.error || 'No se encontraron productos.');
         }
 
-        setProgress(55);
-        showStatus('processing', '📄 Descargando plantilla Excel...');
-        const responseTemplate = await fetch(TEMPLATE_URL);
-        const arrayBuffer = await responseTemplate.arrayBuffer();
-        const wb = XLSX.read(arrayBuffer, { type: "array" });
-
         setProgress(65);
-        showStatus('processing', '🔎 Armando tu archivo...');
+        showStatus('processing', '⏳ Generando archivo Excel con formato...');
 
-        // 2. Insertar datos en PEDIDO desde la fila 2, SOLO valores
-        const pedidoSheet = wb.Sheets["PEDIDO"];
+        // 2. Mandá los productos a la función Python (Vercel)
+        const responseExcel = await fetch(PYTHON_EXCEL_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: data.products })
+        });
 
-        // ¡ATENCIÓN! Debe coincidir el orden exacto de columnas del template:
-        // Ejemplo: [Cliente ID, Producto ID, Cantidad, Precio, Producto, Stock Disponible]
-        // Modifica el siguiente array si tu plantilla tiene otro orden de columnas.
-        const pedidoRows = data.products.map((p) => [
-          1, // Cliente ID
-          p.product_id, // Producto ID
-          '', // Cantidad (el usuario lo llena)
-          Math.round((p.price * 0.4) * 100) / 100, // Precio con 60% descuento, 2 decimales
-          cleanProductName(p.display_name || p.name), // Nombre limpio
-          p.qty_available // Stock
-        ]);
-        // Sobrescribe desde la fila 2
-        XLSX.utils.sheet_add_aoa(pedidoSheet, pedidoRows, { origin: 'A2', overwrite: true });
-
-        setProgress(80);
-
-        // 3. Visibilidad de hojas (PEDIDO visible, AUX_IMPORT oculta)
-        wb.Workbook = wb.Workbook || {};
-        wb.Workbook.Sheets = [
-          { name: 'PEDIDO', Hidden: 0 },
-          { name: 'AUX_IMPORT', Hidden: 1 }
-        ];
+        if (!responseExcel.ok) {
+          throw new Error('No se pudo generar el archivo Excel.');
+        }
 
         setProgress(90);
-        showStatus('processing', '💾 Finalizando descarga...');
+        showStatus('processing', '💾 Descargando archivo...');
+
+        // 3. Descargá el archivo
+        const blob = await responseExcel.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
         const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        XLSX.writeFile(wb, filename);
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
 
         setProgress(100);
         showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
