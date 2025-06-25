@@ -52,16 +52,58 @@ async function getOdooStock(config, uid) {
     db, uid, password, 'product.product', 'read', [productIds, ['display_name', 'default_code', 'list_price', 'name']]
   ]);
 
-  const prices = await xmlrpcCall(models, 'execute_kw', [
-    db, uid, password, 'product.pricelist', 'price_get', [pricelist_id, productIds, 1]
-  ]);
+  const productPrices = {};
+  const pricePromises = products.map(async product => {
+      try {
+        const priceResult = await xmlrpcCall(models, 'execute_kw', [
+          db, uid, password,
+          'product.pricelist', 'price_get',
+          [parseInt(pricelist_id), product.id, 1]
+        ]);
+        
+        if (!priceResult || typeof priceResult !== 'number') {
+          const altPrice = await xmlrpcCall(models, 'execute_kw', [
+            db, uid, password,
+            'product.pricelist', 'get_product_price',
+            [parseInt(pricelist_id), product.id, 1]
+          ]);
+          productPrices[product.id] = altPrice || product.list_price || 0;
+        } else {
+          productPrices[product.id] = priceResult;
+        }
+      } catch (err) {
+        console.error(`Error getting price for product ${product.id}:`, err.message);
+        try {
+          const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+            db, uid, password,
+            'product.pricelist.item', 'search_read',
+            [[
+              ['pricelist_id', '=', parseInt(pricelist_id)],
+              ['product_id', '=', product.id]
+            ], ['fixed_price', 'price_discount', 'percent_price']]
+          ]);
+          
+          if (pricelistItems.length > 0) {
+            const item = pricelistItems[0];
+            productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
+          } else {
+            productPrices[product.id] = product.list_price || 0;
+          }
+        } catch (itemErr) {
+          console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
+          productPrices[product.id] = product.list_price || 0;
+        }
+      }
+    });
+
+  await Promise.all(pricePromises);
 
   return products.map(p => ({
     product_id: p.id,
-    name: p.name.replace(/^\\[.*?\\]\\s*/, '').trim(),
-    display_name: p.display_name.replace(/^\\[.*?\\]\\s*/, '').trim(),
+    name: p.name.replace(/^\[.*?\]\s*/, '').trim(),
+    display_name: p.display_name.replace(/^\[.*?\]\s*/, '').trim(),
     qty_available: Math.floor(productQuantities[p.id] || 0),
-    price: Math.round((prices[p.id] || p.list_price || 0) * 100) / 100,
+    price: Math.round((productPrices[p.id] || p.list_price || 0) * 100) / 100,
   })).filter(p => p.qty_available > 0)
      .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
