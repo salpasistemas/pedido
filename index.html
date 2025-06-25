@@ -188,9 +188,9 @@
   </header>
 
   <div class="container">
-    <h2>📦 Descargar Stock Disponible</h2>
+    <h2>🚀 Crear Pedido en Google Sheets</h2>
     <div class="description">
-      Descarga el inventario actual de tu ubicación de stock para crear un nuevo pedido de manera fácil y rápida.
+      Crea una nueva hoja de cálculo de Google Sheets con el inventario actual para realizar tu pedido de forma online y colaborativa.
     </div>
     <div class="features">
       <h3>🚀 Nuevo formato mejorado:</h3>
@@ -225,10 +225,8 @@
       </p>
     </div>
   </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
-const TEMPLATE_URL = 'templates/peddo_template.xlsx';
+const API_URL = 'https://pedido2-five.vercel.app/api/create-sheet';
 
 const downloadBtn = document.getElementById('downloadBtn');
 const downloadBtnText = document.getElementById('downloadBtnText');
@@ -236,6 +234,7 @@ const status = document.getElementById('status');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const nextStep = document.getElementById('nextStep');
+const uploadLink = document.querySelector('.upload-link');
 
 function showStatus(type, message) {
   status.className = "status " + type;
@@ -244,80 +243,57 @@ function showStatus(type, message) {
 }
 
 function setProgress(percent) {
-  progressFill.style.width = percent + '%';
   progressBar.style.display = 'block';
+  progressFill.style.width = percent + '%';
 }
 
-function cleanProductName(displayName) {
-  return displayName.replace(/^\[.*?\]\s*/, '').trim();
-}
-
-async function downloadStock() {
+async function createSheet() {
   try {
     downloadBtn.disabled = true;
     downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-    showStatus('processing', '🔄 Consultando productos...');
-    setProgress(15);
+    showStatus('processing', '🔄 Conectando con Odoo y Google...');
+    setProgress(25);
 
-    // 1. Obtené los productos desde tu API Node.js
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
     });
 
-    setProgress(40);
-    showStatus('processing', '📊 Procesando datos...');
+    setProgress(75);
+    showStatus('processing', '⏳ Creando tu Google Sheet...');
+
     const data = await response.json();
-    if (!data.success || !data.products.length) {
-      throw new Error(data.error || 'No se encontraron productos.');
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Hubo un problema al crear la hoja de cálculo.');
     }
 
-    setProgress(55);
-    showStatus('processing', '📄 Descargando plantilla Excel...');
-    const responseTemplate = await fetch(TEMPLATE_URL);
-    const arrayBuffer = await responseTemplate.arrayBuffer();
-    const wb = XLSX.read(arrayBuffer, { type: "array" });
-
-    setProgress(65);
-    showStatus('processing', '🔎 Armando tu archivo...');
-
-    // AJUSTÁ ESTO según el orden de columnas de tu template PEDIDO:
-    // Ejemplo de orden: [Cliente ID, Producto ID, Cantidad, Precio, Producto, Stock Disponible]
-    const pedidoSheet = wb.Sheets["PEDIDO"];
-    const pedidoRows = data.products.map((p) => [
-      1, // Cliente ID
-      p.product_id, // Producto ID
-      '', // Cantidad vacía, el usuario la llena después
-      Math.round((p.price * 0.4) * 100) / 100, // Precio con 60% descuento
-      cleanProductName(p.display_name || p.name),
-      p.qty_available
-    ]);
-    XLSX.utils.sheet_add_aoa(pedidoSheet, pedidoRows, { origin: 'A2', overwrite: true });
-
-    setProgress(80);
-
-    // Guardar archivo como: pedido_stock_ubicacion_8_FECHA.xlsx
-    const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    XLSX.writeFile(wb, filename);
-
     setProgress(100);
-    showStatus('success', `✅ ¡Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
+    showStatus('success', `✅ ¡Hoja de cálculo creada!<br><strong><a href="${data.url}" target="_blank">Haz clic aquí para abrir tu pedido</a></strong>`);
+    
+    // Prepara el siguiente paso
+    uploadLink.href = data.url;
     nextStep.style.display = 'block';
+    
+    // Cambia el botón para abrir el link directamente
+    downloadBtnText.innerHTML = '🚀 Abrir Pedido';
+    downloadBtn.onclick = () => window.open(data.url, '_blank');
+
 
   } catch (err) {
     console.error('Error:', err);
     showStatus('error', `❌ Error: ${err.message}`);
     setProgress(0);
   } finally {
+    // Habilita el botón después de un momento, ya sea para reintentar o para abrir el link
     setTimeout(() => {
       downloadBtn.disabled = false;
-      downloadBtnText.innerHTML = '📥 Descargar Stock Actual';
-    }, 3000);
+    }, 1000);
   }
 }
 
-document.getElementById('downloadBtn').addEventListener('click', downloadStock);
+downloadBtn.addEventListener('click', createSheet);
 </script>
 
 </body>

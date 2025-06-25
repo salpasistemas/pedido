@@ -8,7 +8,8 @@
     "dev": "vercel dev"
   },
   "dependencies": {
-    "xmlrpc": "^1.3.2"
+    "xmlrpc": "^1.3.2",
+    "googleapis": "^105.0.0"
   },
   "engines": {
     "node": ">=14.x"
