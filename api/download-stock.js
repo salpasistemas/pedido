@@ -138,46 +138,16 @@ export default async function handler(req, res) {
       [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name', 'categ_id']]
     ]);
 
-    // Obtener reglas de la lista de precios
-    const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
-        ODOO_DB, uid, ODOO_PASSWORD,
-        'product.pricelist.item', 'search_read',
-        [[['pricelist_id', '=', parseInt(pricelist_id)]], ['categ_id', 'compute_price', 'fixed_price', 'price_discount', 'percent_price']]
-    ]);
-
-    // Mapear reglas de precios por ID de categoría para una búsqueda más sencilla
-    const categoryPriceRules = {};
-    for (const item of pricelistItems) {
-        if (item.categ_id) {
-            categoryPriceRules[item.categ_id[0]] = item;
-        }
-    }
-
-    // Función para obtener la regla de precio más específica para un producto
-    const getPriceRule = (product) => {
-        let categoryId = product.categ_id[0];
-        // Buscar una regla para la categoría exacta del producto
-        if (categoryPriceRules[categoryId]) {
-            return categoryPriceRules[categoryId];
-        }
-        return null; // No se encontró ninguna regla aplicable
-    };
-
-    // Calcular precios de productos
+    // Aplicar descuentos por categoría
     const productPrices = {};
     products.forEach(product => {
-        const rule = getPriceRule(product);
-        if (rule) {
-            if (rule.compute_price === 'fixed') {
-                productPrices[product.id] = rule.fixed_price || 0;
-            } else if (rule.compute_price === 'percentage') {
-                const discount = rule.price_discount || 0;
-                productPrices[product.id] = product.list_price * (1 - discount / 100);
-            } else {
-                productPrices[product.id] = product.list_price; // Precio base por defecto
-            }
+        const categoryId = product.categ_id[0];
+        if (category === 'general') {
+            productPrices[product.id] = product.list_price * (1 - 0.395);
+        } else if (category === 'segunda') {
+            productPrices[product.id] = product.list_price * (1 - 0.60);
         } else {
-            productPrices[product.id] = product.list_price; // Precio base si no hay regla
+            productPrices[product.id] = product.list_price;
         }
     });
 
