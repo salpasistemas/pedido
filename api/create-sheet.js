@@ -144,33 +144,46 @@ async function copyTemplate(drive, templateId) {
 
 // Write data to the new sheet
 async function writeToSheet(sheets, spreadsheetId, data) {
-  const header = [
-    "Descripción",
-    "Stock",
-    "Precio",
-    "ID Producto",
-    "Cantidad",
-    "ID Cliente"
-  ];
-
   const values = data.map(p => [
+    p.product_id,
+    1, // Cliente ID
     p.display_name,
     p.qty_available,
     Math.round(p.price * 0.4 * 100) / 100, // Precio con 60% descuento
-    p.product_id,
     '', // Cantidad
-    1, // Cliente ID
+    '' // Subtotal
   ]);
-
-  const dataToWrite = [header, ...values];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: 'PEDIDO!A1', // Start writing at cell A1 to include header
+    range: 'PEDIDO!A2', // Start writing at cell A2 of the 'PEDIDO' sheet
     valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: dataToWrite
-    },
+    requestBody: { values },
+  });
+}
+
+// Hide columns A and B
+async function hideColumns(sheets, spreadsheetId) {
+  const requests = [
+    {
+      updateDimensionProperties: {
+        range: {
+          sheetId: 0, // Assuming 'PEDIDO' is the first sheet
+          dimension: 'COLUMNS',
+          startIndex: 0, // Column A
+          endIndex: 2   // Column B
+        },
+        properties: {
+          hiddenByUser: true
+        },
+        fields: 'hiddenByUser'
+      }
+    }
+  ];
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: { requests }
   });
 }
 
@@ -220,6 +233,7 @@ export default async function handler(req, res) {
     // 4. Copy Template and Write Data
     const newSheetId = await copyTemplate(drive, GOOGLE_SHEET_TEMPLATE_ID);
     await writeToSheet(sheets, newSheetId, products);
+    await hideColumns(sheets, newSheetId);
 
     // 5. Return new sheet URL
     const sheetUrl = `https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
