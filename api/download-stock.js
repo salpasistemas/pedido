@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Obtener información de productos
+    // Obtener información de productos - incluimos display_name explícitamente
     const products = await xmlrpcCall(models, 'execute_kw', [
       ODOO_DB, uid, ODOO_PASSWORD,
       'product.product', 'read',
@@ -142,15 +142,47 @@ export default async function handler(req, res) {
     const productPrices = {};
     const pricePromises = products.map(async product => {
       try {
-        const price = await xmlrpcCall(models, 'execute_kw', [
+        // Usar el método correcto para obtener precios de pricelist
+        const priceResult = await xmlrpcCall(models, 'execute_kw', [
           ODOO_DB, uid, ODOO_PASSWORD,
-          'product.pricelist', 'get_product_price',
+          'product.pricelist', 'price_get',
           [parseInt(pricelist_id), product.id, 1]
         ]);
-        productPrices[product.id] = price || product.list_price || 0;
+        
+        // Si price_get no funciona, intentar con get_product_price
+        if (!priceResult || typeof priceResult !== 'number') {
+          const altPrice = await xmlrpcCall(models, 'execute_kw', [
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'product.pricelist', 'get_product_price',
+            [parseInt(pricelist_id), product.id, 1]
+          ]);
+          productPrices[product.id] = altPrice || product.list_price || 0;
+        } else {
+          productPrices[product.id] = priceResult;
+        }
       } catch (err) {
         console.error(`Error getting price for product ${product.id}:`, err.message);
-        productPrices[product.id] = product.list_price || 0;
+        // Como último recurso, intentar buscar precio directo en product.pricelist.item
+        try {
+          const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+            ODOO_DB, uid, ODOO_PASSWORD,
+            'product.pricelist.item', 'search_read',
+            [[
+              ['pricelist_id', '=', parseInt(pricelist_id)],
+              ['product_id', '=', product.id]
+            ], ['fixed_price', 'price_discount', 'percent_price']]
+          ]);
+          
+          if (pricelistItems.length > 0) {
+            const item = pricelistItems[0];
+            productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
+          } else {
+            productPrices[product.id] = product.list_price || 0;
+          }
+        } catch (itemErr) {
+          console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
+          productPrices[product.id] = product.list_price || 0;
+        }
       }
     });
 
@@ -160,14 +192,14 @@ export default async function handler(req, res) {
     const finalProducts = products
       .map(product => ({
         product_id: product.id,
-        name: product.display_name,
-        display_name: product.display_name,
+        name: product.name,
+        display_name: product.display_name, // Incluir display_name
         default_code: product.default_code || '',
         qty_available: Math.floor(productQuantities[product.id] || 0), // Redondear a entero
         price: Math.round(productPrices[product.id] * 100) / 100 // Redondear a 2 decimales
       }))
       .filter(product => product.qty_available > 0) // Solo productos con stock
-      .sort((a, b) => a.name.localeCompare(b.name)); // Ordenar alfabéticamente
+      .sort((a, b) => (a.display_name || a.name).localeCompare(b.display_name || b.name)); // Ordenar por display_name
 
     return res.status(200).json({
       success: true,
