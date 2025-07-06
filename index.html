@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Descargar Stock - Crear Pedido</title>
+  <title>Salpa - Nota de Pedido</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -26,11 +26,10 @@
       justify-content: center;
       align-items: center;
     }
-    header img {
-      height: 40px;
-      margin-right: 10px;
+    .logo {
+      height: 50px;
+      width: auto;
     }
-    .logo { height: 50px; width: 132px; }
     .container {
       background: white;
       border-radius: 20px;
@@ -40,28 +39,18 @@
       margin-top: 40px;
       text-align: center;
     }
-    h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 26px;
+      font-weight: 300;
+    }
     .description {
       color: #555;
       margin-bottom: 30px;
       font-size: 16px;
       line-height: 1.6;
     }
-    .download-zone {
-      border: 3px solid #658c68;
-      border-radius: 15px;
-      padding: 60px 20px;
-      margin: 30px 0;
-      background: linear-gradient(135deg, #f9f9f9 0%, #eff6ef 100%);
-      transition: all 0.3s ease;
-    }
-    .download-zone:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(101, 140, 104, 0.2);
-    }
-    .download-icon { font-size: 48px; margin-bottom: 15px; color: #658c68; }
-    .download-text { font-size: 18px; color: #444; margin-bottom: 10px; font-weight: 600; }
-    .download-hint { font-size: 14px; color: #666; line-height: 1.4; }
     .download-btn {
       background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
       color: white;
@@ -137,50 +126,6 @@
       transition: width 0.3s ease;
       width: 0%;
     }
-    .next-step {
-      background: #f3e5f5;
-      border: 1px solid #9c27b0;
-      border-radius: 10px;
-      padding: 20px;
-      margin-top: 30px;
-      text-align: left;
-    }
-    .next-step-title { font-weight: 600; color: #7b1fa2; margin-bottom: 10px; }
-    .upload-link {
-      color: #7b1fa2;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .upload-link:hover { text-decoration: underline; }
-    .features {
-      background: #e8f5e8;
-      border: 1px solid #4caf50;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 20px 0;
-      text-align: left;
-    }
-    .features h3 {
-      color: #2e7d32;
-      margin-bottom: 15px;
-      font-size: 18px;
-    }
-    .features ul {
-      list-style: none;
-      padding: 0;
-    }
-    .features li {
-      margin: 8px 0;
-      padding-left: 20px;
-      position: relative;
-    }
-    .features li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #4caf50;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -189,66 +134,26 @@
   </header>
 
   <div class="container">
-    <h2>Descarga Nota de Pedido</h2>
-
+    <h2>Descargar Nota de Pedido</h2>
     <div class="description">
-      Descarga la plantilla con datos de stock y precios actualizados para crear tu pedido de manera ágil.
+      Presioná el botón para descargar tu archivo con el stock actualizado.
     </div>
-
-    <!-- COMMENTED OUT: Features section
-    <div class="features">
-      <h3>🚀 Nuevo formato mejorado:</h3>
-      <ul>
-        <li>Hoja "PEDIDO" user-friendly para completar cantidades</li>
-        <li>Nombres de productos limpios (sin códigos entre corchetes)</li>
-        <li>Precios actualizados según lista de precios</li>
-        <li>Cálculo automático de subtotales</li>
-        <li>Filtrado automático de productos solicitados</li>
-      </ul>
-    </div>
-    -->
-
-    <!-- COMMENTED OUT: Download zone
-    <div class="download-zone">
-      <div class="download-icon">📊</div>
-      <div class="download-text">Stock de Ubicación 8</div>
-      <div class="download-hint">Precios con Lista 5<br>Se generará un archivo Excel optimizado</div>
-    </div>
-    -->
-
     <button class="download-btn" id="downloadBtn">
-      <span id="downloadBtnText">Descargar Nota de Pedido</span>
+      <span id="downloadBtnText">Descargar Pedido</span>
     </button>
-
     <div class="status" id="status"></div>
-
     <div class="progress-bar" id="progressBar">
       <div class="progress-fill" id="progressFill"></div>
     </div>
-
-    <!-- COMMENTED OUT: Next step section
-    <div class="next-step" style="display: none;" id="nextStep">
-      <div class="next-step-title">🚀 Siguiente paso:</div>
-      <p>
-        1. Abre el archivo Excel descargado<br>
-        2. Ve a la hoja "PEDIDO" y completa las cantidades<br>
-        3. Los subtotales se calcularán automáticamente<br>
-        4. Guarda el archivo<br>
-        5. <a href="#" class="upload-link">Sube tu pedido aquí</a>
-      </p>
-    </div>
-    -->
   </div>
 
   <script>
     const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
-
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
     const status = document.getElementById('status');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
-    const nextStep = document.getElementById('nextStep');
 
     function showStatus(type, message) {
       status.className = `status ${type}`;
@@ -261,58 +166,8 @@
       progressBar.style.display = 'block';
     }
 
-    // Función para limpiar el nombre del producto (remover códigos entre corchetes)
-    function cleanProductName(displayName) {
-      // Remover texto entre corchetes al principio del nombre
-      return displayName.replace(/^\[.*?\]\s*/, '').trim();
-    }
-
-    // Función para aplicar formato profesional a las hojas
-    function formatWorksheet(worksheet, headers) {
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
-      
-      // Configurar anchos de columna
-      const colWidths = {
-        0: 15, // Cliente ID
-        1: 12, // Producto ID  
-        2: 15, // Código
-        3: 40, // Producto
-        4: 15, // Stock
-        5: 12, // Precio
-        6: 12, // Cantidad
-        7: 15  // Subtotal
-      };
-      
-      worksheet['!cols'] = Object.keys(colWidths).map(i => ({ width: colWidths[i] }));
-      
-      // Formatear celdas de encabezado
-      for (let col = 0; col <= headers.length - 1; col++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-        if (worksheet[cellAddress]) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "658C68" } },
-            alignment: { horizontal: "center", vertical: "center" }
-          };
-        }
-      }
-      
-      // Formatear columnas de números
-      for (let row = 1; row <= range.e.r; row++) {
-        // Formatear precio (columna 5)
-        const priceCell = XLSX.utils.encode_cell({ r: row, c: 5 });
-        if (worksheet[priceCell]) {
-          worksheet[priceCell].z = '"$"#,##0.00';
-        }
-        
-        // Formatear subtotal (columna 7)
-        const subtotalCell = XLSX.utils.encode_cell({ r: row, c: 7 });
-        if (worksheet[subtotalCell]) {
-          worksheet[subtotalCell].z = '"$"#,##0.00';
-        }
-      }
-      
-      return worksheet;
+    function cleanProductName(name) {
+      return name.replace(/^\[.*?\]\s*/, '').trim();
     }
 
     async function downloadStock() {
@@ -322,7 +177,7 @@
         showStatus('processing', 'Conectando a Odoo...');
         setProgress(15);
 
-        const response = await fetch(API_URL, {
+        const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
@@ -330,115 +185,47 @@
 
         setProgress(45);
         showStatus('processing', 'Procesando datos...');
+        const data = await res.json();
 
-        const data = await response.json();
-        if (!data.success || !data.products.length) {
-          throw new Error(data.error || 'No se encontraron productos.');
-        }
+        if (!data.success || !data.products.length) throw new Error(data.error || 'No hay productos.');
 
         setProgress(70);
         showStatus('processing', 'Generando Excel...');
 
         const wb = XLSX.utils.book_new();
-        
-        // Crear hoja PEDIDO (visible y user-friendly)
         const pedidoHeaders = ['Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-        const pedidoRows = data.products.map(p => [
-          cleanProductName(p.name), // Nombre limpio sin códigos
-          p.qty_available,
-          p.price,
-          '', // Cantidad vacía para que el usuario complete
-          { f: `C${data.products.indexOf(p) + 2}*D${data.products.indexOf(p) + 2}` } // Fórmula para subtotal
+        const pedidoRows = data.products.map((p, i) => [
+          cleanProductName(p.name), p.qty_available, p.price, '', { f: `C${i + 2}*D${i + 2}` }
         ]);
-        
-        let pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
-        pedidoSheet = formatWorksheet(pedidoSheet, pedidoHeaders);
-        
-        // Agregar filtros automáticos
-        pedidoSheet['!autofilter'] = { ref: XLSX.utils.encode_range({
-          s: { c: 0, r: 0 },
-          e: { c: pedidoHeaders.length - 1, r: pedidoRows.length }
-        })};
-        
+        const pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
+        pedidoSheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: pedidoRows.length, c: 4 } }) };
         XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
 
-        // Crear hoja AUX_IMPORT (oculta, con datos completos para el sistema)
         const auxHeaders = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-        const auxRows = data.products.map(p => [
-          1, // Cliente ID fijo
-          p.product_id,
-          p.default_code || '',
-          p.name, // Nombre completo original
-          p.qty_available,
-          p.price,
-          '', // Cantidad vacía
-          '' // Subtotal vacío
-        ]);
-        
-        let auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders, ...auxRows]);
-        auxSheet = formatWorksheet(auxSheet, auxHeaders);
+        const auxRows = data.products.map(p => [1, p.product_id, p.default_code || '', p.name, p.qty_available, p.price, '', '']);
+        const auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders, ...auxRows]);
         XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
-        
-        // Ocultar la hoja AUX_IMPORT
-        wb.Workbook = wb.Workbook || {};
-        wb.Workbook.Sheets = wb.Workbook.Sheets || [];
-        wb.Workbook.Sheets.push({ name: 'AUX_IMPORT', Hidden: 1 });
 
-        // Crear hoja de INSTRUCCIONES mejorada
-        const instrucciones = [
-          ['INSTRUCCIONES DE USO'],
-          [''],
-          ['Cómo usar este archivo:'],
-          [''],
-          ['1. Ve a la hoja "PEDIDO"'],
-          ['2. Revisa los productos disponibles y sus precios'],
-          ['3. Completa la columna "Cantidad" con lo que deseas pedir'],
-          ['4. Los subtotales se calcularán automáticamente'],
-          ['5. Guarda el archivo cuando termines'],
-          ['6. Sube el archivo al sistema para procesar tu pedido'],
-          [''],
-          ['Consejos:'],
-          ['• Usa los filtros para encontrar productos específicos'],
-          ['• Solo se procesarán productos con cantidad mayor a 0'],
-          ['• Verifica el stock disponible antes de pedir'],
-          ['• Los precios ya incluyen la lista de precios configurada'],
-          [''],
-          ['Importante:'],
-          ['• No modifies los nombres de las hojas'],
-          ['• No elimines columnas ni filas de encabezado'],
-          ['• La hoja AUX_IMPORT contiene datos del sistema (no modificar)']
-        ];
-        
-        let instrSheet = XLSX.utils.aoa_to_sheet(instrucciones);
-        instrSheet['!cols'] = [{ width: 60 }];
-        
-        // Formatear título
-        if (instrSheet['A1']) {
-          instrSheet['A1'].s = {
-            font: { bold: true, size: 16, color: { rgb: "2e7d32" } },
-            alignment: { horizontal: "center" }
-          };
-        }
-        
-        XLSX.utils.book_append_sheet(wb, instrSheet, 'INSTRUCCIONES');
+        wb.Workbook = { Sheets: [{ name: 'AUX_IMPORT', Hidden: 1 }] };
 
-        setProgress(90);
-        showStatus('processing', 'Finalizando descarga...');
-
-        const filename = `pedido_stock_ubicacion_8_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const filename = `pedido_stock_${new Date().toISOString().slice(0, 10)}.xlsx`;
         XLSX.writeFile(wb, filename);
 
         setProgress(100);
-        showStatus('success', `Descargado exitosamente!<br><strong>${filename}</strong><br>Productos disponibles: ${data.products.length}`);
-        // nextStep.style.display = 'block'; // COMMENTED OUT
+        showStatus('success', `✅ Archivo generado: <strong>${filename}</strong>`);
 
       } catch (err) {
-        console.error('Error:', err);
-        showStatus('error', `Error: ${err.message}`);
+        showStatus('error', `❌ Error: ${err.message}`);
         setProgress(0);
       } finally {
         setTimeout(() => {
           downloadBtn.disabled = false;
-          downloadBtnText.innerHTML = 'Descargar Nota de Pedido';
-        }, 3000);
+          downloadBtnText.innerHTML = 'Descargar Pedido';
+        }, 2000);
       }
+    }
+
+    downloadBtn.addEventListener('click', downloadStock);
+  </script>
+</body>
+</html>
