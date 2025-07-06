@@ -144,20 +144,33 @@ async function copyTemplate(drive, templateId) {
 
 // Write data to the new sheet
 async function writeToSheet(sheets, spreadsheetId, data) {
+  const header = [
+    "Descripción",
+    "Stock",
+    "Precio",
+    "ID Producto",
+    "Cantidad",
+    "ID Cliente"
+  ];
+
   const values = data.map(p => [
-    1, // Cliente ID
-    p.product_id,
-    '', // Cantidad
-    Math.round(p.price * 0.4 * 100) / 100, // Precio con 60% descuento
     p.display_name,
     p.qty_available,
+    Math.round(p.price * 0.4 * 100) / 100, // Precio con 60% descuento
+    p.product_id,
+    '', // Cantidad
+    1, // Cliente ID
   ]);
+
+  const dataToWrite = [header, ...values];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: 'PEDIDO!A2', // Start writing at cell A2 of the 'PEDIDO' sheet
+    range: 'PEDIDO!A1', // Start writing at cell A1 to include header
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values },
+    requestBody: {
+      values: dataToWrite
+    },
   });
 }
 
