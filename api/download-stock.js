@@ -201,13 +201,20 @@ export default async function handler(req, res) {
       .filter(product => product.qty_available > 0) // Solo productos con stock
       .sort((a, b) => (a.display_name || a.name).localeCompare(b.display_name || b.name)); // Ordenar por display_name
 
+    // Generate Argentina timezone timestamp
+    const now = new Date();
+    const argentinaOffset = -3; // UTC-3 (Argentina timezone)
+    const argentinaTime = new Date(now.getTime() + (argentinaOffset * 60 * 60 * 1000));
+    
     return res.status(200).json({
       success: true,
       products: finalProducts,
       total_products: finalProducts.length,
       location_id: parseInt(location_id),
       pricelist_id: parseInt(pricelist_id),
-      generated_at: new Date().toISOString()
+      category: category || 'all',
+      generated_at: argentinaTime.toISOString(),
+      generated_at_local: argentinaTime.toISOString().slice(0, 19).replace('T', ' ') + ' ART'
     });
 
   } catch (error) {
