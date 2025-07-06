@@ -131,9 +131,9 @@ async function copyTemplate(drive, templateId, category) {
   
   let categoryName = '';
   if (category === 'general') {
-    categoryName = 'GENERAL_';
+    categoryName = '_';
   } else if (category === 'segunda') {
-    categoryName = 'SEGUNDA_';
+    categoryName = '2DA_';
   } else {
     categoryName = 'WH-STOCK_';
   }
