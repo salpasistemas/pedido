@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salpa - Nota de Pedido</title>
+  <title>Crear Pedido - Salpa</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -26,10 +25,7 @@
       justify-content: center;
       align-items: center;
     }
-    .logo {
-      height: 50px;
-      width: auto;
-    }
+    .logo { height: 50px; width: auto; }
     .container {
       background: white;
       border-radius: 20px;
@@ -39,12 +35,7 @@
       margin-top: 40px;
       text-align: center;
     }
-    h2 {
-      color: #333;
-      margin-bottom: 20px;
-      font-size: 26px;
-      font-weight: 300;
-    }
+    h2 { color: #333; margin-bottom: 20px; font-size: 26px; font-weight: 300; }
     .description {
       color: #555;
       margin-bottom: 30px;
@@ -132,14 +123,13 @@
   <header>
     <img src="logo.png" alt="Logo Salpa" class="logo">
   </header>
-
   <div class="container">
-    <h2>Descargar Nota de Pedido</h2>
+    <h2>Generar Nota de Pedido</h2>
     <div class="description">
-      Presioná el botón para descargar tu archivo con el stock actualizado.
+      Crea automáticamente una hoja de cálculo con el inventario actual para realizar tu pedido online.
     </div>
     <button class="download-btn" id="downloadBtn">
-      <span id="downloadBtnText">Descargar Pedido</span>
+      <span id="downloadBtnText">📥 Generar Pedido</span>
     </button>
     <div class="status" id="status"></div>
     <div class="progress-bar" id="progressBar">
@@ -148,7 +138,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
+    const API_URL = 'https://pedido2-five.vercel.app/api/create-sheet';
     const downloadBtn = document.getElementById('downloadBtn');
     const downloadBtnText = document.getElementById('downloadBtnText');
     const status = document.getElementById('status');
@@ -166,66 +156,42 @@
       progressBar.style.display = 'block';
     }
 
-    function cleanProductName(name) {
-      return name.replace(/^\[.*?\]\s*/, '').trim();
-    }
-
-    async function downloadStock() {
+    async function createSheet() {
       try {
         downloadBtn.disabled = true;
         downloadBtnText.innerHTML = '<div class="spinner"></div>Conectando...';
-        showStatus('processing', 'Conectando a Odoo...');
-        setProgress(15);
+        showStatus('processing', '🔄 Conectando con Odoo y Google...');
+        setProgress(25);
 
-        const res = await fetch(API_URL, {
+        const response = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ location_id: 8, pricelist_id: 5 })
         });
 
-        setProgress(45);
-        showStatus('processing', 'Procesando datos...');
-        const data = await res.json();
+        setProgress(75);
+        showStatus('processing', '⏳ Creando tu hoja...');
 
-        if (!data.success || !data.products.length) throw new Error(data.error || 'No hay productos.');
-
-        setProgress(70);
-        showStatus('processing', 'Generando Excel...');
-
-        const wb = XLSX.utils.book_new();
-        const pedidoHeaders = ['Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-        const pedidoRows = data.products.map((p, i) => [
-          cleanProductName(p.name), p.qty_available, p.price, '', { f: `C${i + 2}*D${i + 2}` }
-        ]);
-        const pedidoSheet = XLSX.utils.aoa_to_sheet([pedidoHeaders, ...pedidoRows]);
-        pedidoSheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: pedidoRows.length, c: 4 } }) };
-        XLSX.utils.book_append_sheet(wb, pedidoSheet, 'PEDIDO');
-
-        const auxHeaders = ['Cliente ID', 'Producto ID', 'Código', 'Producto', 'Stock Disponible', 'Precio', 'Cantidad', 'Subtotal'];
-        const auxRows = data.products.map(p => [1, p.product_id, p.default_code || '', p.name, p.qty_available, p.price, '', '']);
-        const auxSheet = XLSX.utils.aoa_to_sheet([auxHeaders, ...auxRows]);
-        XLSX.utils.book_append_sheet(wb, auxSheet, 'AUX_IMPORT');
-
-        wb.Workbook = { Sheets: [{ name: 'AUX_IMPORT', Hidden: 1 }] };
-
-        const filename = `pedido_stock_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        XLSX.writeFile(wb, filename);
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo crear la hoja de pedido.');
+        }
 
         setProgress(100);
-        showStatus('success', `✅ Archivo generado: <strong>${filename}</strong>`);
+        showStatus('success', `✅ ¡Hoja creada! <a href="${data.url}" target="_blank">Abrir pedido</a>`);
 
+        // Update button to open sheet directly
+        downloadBtnText.innerHTML = '🚀 Abrir Pedido';
+        downloadBtn.onclick = () => window.open(data.url, '_blank');
       } catch (err) {
         showStatus('error', `❌ Error: ${err.message}`);
         setProgress(0);
       } finally {
-        setTimeout(() => {
-          downloadBtn.disabled = false;
-          downloadBtnText.innerHTML = 'Descargar Pedido';
-        }, 2000);
+        setTimeout(() => downloadBtn.disabled = false, 2000);
       }
     }
 
-    downloadBtn.addEventListener('click', downloadStock);
+    downloadBtn.addEventListener('click', createSheet);
   </script>
 </body>
 </html>
