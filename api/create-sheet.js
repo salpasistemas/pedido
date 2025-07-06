@@ -1,5 +1,3 @@
-
-
 const { google } = require('googleapis');
 const xmlrpc = require('xmlrpc');
 
@@ -21,11 +19,12 @@ async function getOdooUid(url, db, username, password) {
   return await xmlrpcCall(common, 'authenticate', [db, username, password, {}]);
 }
 
-// Fetch stock data from Odoo
-async function getOdooStock(config, uid) {
+// Fetch stock data from Odoo with category filtering
+async function getOdooStock(config, uid, category) {
   const { db, password, location_id, pricelist_id } = config;
   const models = xmlrpc.createSecureClient({ url: `${config.url}/xmlrpc/2/object` });
 
+  // Get stock quants
   const quantIds = await xmlrpcCall(models, 'execute_kw', [
     db, uid, password, 'stock.quant', 'search',
     [[['location_id', '=', location_id], ['quantity', '>', 0], ['product_id.active', '=', true]]]
@@ -37,6 +36,7 @@ async function getOdooStock(config, uid) {
     db, uid, password, 'stock.quant', 'read', [quantIds, ['product_id', 'quantity', 'reserved_quantity']]
   ]);
 
+  // Calculate available quantities per product
   const productQuantities = {};
   quants.forEach(q => {
     const availableQty = q.quantity - (q.reserved_quantity || 0);
@@ -45,56 +45,84 @@ async function getOdooStock(config, uid) {
     }
   });
 
-  const productIds = Object.keys(productQuantities).map(id => parseInt(id));
-  if (!productIds.length) return [];
+  const allProductIds = Object.keys(productQuantities).map(id => parseInt(id));
+  if (!allProductIds.length) return [];
 
-  const products = await xmlrpcCall(models, 'execute_kw', [
-    db, uid, password, 'product.product', 'read', [productIds, ['display_name', 'default_code', 'list_price', 'name']]
+  // Apply category filtering
+  let categoryFilter = [];
+  if (category === 'general') {
+    categoryFilter = ['categ_id', 'child_of', 8];
+  } else if (category === 'segunda') {
+    categoryFilter = ['categ_id', 'child_of', 88];
+  }
+
+  const productSearchDomain = [
+    ['id', 'in', allProductIds],
+  ];
+
+  if (categoryFilter.length > 0) {
+    productSearchDomain.push(categoryFilter);
+  }
+
+  // Get filtered product IDs
+  const filteredProductIds = await xmlrpcCall(models, 'execute_kw', [
+    db, uid, password,
+    'product.product', 'search',
+    [productSearchDomain]
   ]);
 
+  if (!filteredProductIds.length) return [];
+
+  // Get product information
+  const products = await xmlrpcCall(models, 'execute_kw', [
+    db, uid, password, 'product.product', 'read', 
+    [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name']]
+  ]);
+
+  // Get prices from pricelist
   const productPrices = {};
   const pricePromises = products.map(async product => {
-      try {
-        const priceResult = await xmlrpcCall(models, 'execute_kw', [
+    try {
+      const priceResult = await xmlrpcCall(models, 'execute_kw', [
+        db, uid, password,
+        'product.pricelist', 'price_get',
+        [parseInt(pricelist_id), product.id, 1]
+      ]);
+      
+      if (!priceResult || typeof priceResult !== 'number') {
+        const altPrice = await xmlrpcCall(models, 'execute_kw', [
           db, uid, password,
-          'product.pricelist', 'price_get',
+          'product.pricelist', 'get_product_price',
           [parseInt(pricelist_id), product.id, 1]
         ]);
+        productPrices[product.id] = altPrice || product.list_price || 0;
+      } else {
+        productPrices[product.id] = priceResult;
+      }
+    } catch (err) {
+      console.error(`Error getting price for product ${product.id}:`, err.message);
+      try {
+        const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+          db, uid, password,
+          'product.pricelist.item', 'search_read',
+          [[
+            ['pricelist_id', '=', parseInt(pricelist_id)],
+            ['product_id', '=', product.id]
+          ], ['fixed_price', 'price_discount', 'percent_price']]
+        ]);
         
-        if (!priceResult || typeof priceResult !== 'number') {
-          const altPrice = await xmlrpcCall(models, 'execute_kw', [
-            db, uid, password,
-            'product.pricelist', 'get_product_price',
-            [parseInt(pricelist_id), product.id, 1]
-          ]);
-          productPrices[product.id] = altPrice || product.list_price || 0;
+        if (pricelistItems.length > 0) {
+          const item = pricelistItems[0];
+          productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
         } else {
-          productPrices[product.id] = priceResult;
-        }
-      } catch (err) {
-        console.error(`Error getting price for product ${product.id}:`, err.message);
-        try {
-          const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
-            db, uid, password,
-            'product.pricelist.item', 'search_read',
-            [[
-              ['pricelist_id', '=', parseInt(pricelist_id)],
-              ['product_id', '=', product.id]
-            ], ['fixed_price', 'price_discount', 'percent_price']]
-          ]);
-          
-          if (pricelistItems.length > 0) {
-            const item = pricelistItems[0];
-            productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
-          } else {
-            productPrices[product.id] = product.list_price || 0;
-          }
-        } catch (itemErr) {
-          console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
           productPrices[product.id] = product.list_price || 0;
         }
+      } catch (itemErr) {
+        console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
+        productPrices[product.id] = product.list_price || 0;
       }
-    });
+    }
+  });
 
   await Promise.all(pricePromises);
 
@@ -107,7 +135,6 @@ async function getOdooStock(config, uid) {
   })).filter(p => p.qty_available > 0)
      .sort((a, b) => a.display_name.localeCompare(b.display_name));
 }
-
 
 // --- Google Sheets Functions ---
 
@@ -128,17 +155,36 @@ function getGoogleAuth() {
   return auth.getClient();
 }
 
-// Copy the template sheet
-async function copyTemplate(drive, templateId) {
-  const newFileName = `Pedido de Stock - ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+// Copy the template sheet with Argentina timezone
+async function copyTemplate(drive, templateId, category) {
+  // Create Argentina timezone timestamp
+  const now = new Date();
+  const argentinaOffset = -3; // UTC-3 (Argentina timezone)
+  const argentinaTime = new Date(now.getTime() + (argentinaOffset * 60 * 60 * 1000));
+  
+  const timestamp = argentinaTime.toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+  
+  let categoryName = '';
+  if (category === 'general') {
+    categoryName = 'GENERAL_';
+  } else if (category === 'segunda') {
+    categoryName = 'SEGUNDA_';
+  } else {
+    categoryName = 'WH-STOCK_';
+  }
+  
+  const newFileName = `Pedido_Salpa_${categoryName}${timestamp}`;
+  
   const { data } = await drive.files.copy({
     fileId: templateId,
     requestBody: { name: newFileName },
   });
+  
   await drive.permissions.create({
-      fileId: data.id,
-      requestBody: { role: 'writer', type: 'anyone' }
+    fileId: data.id,
+    requestBody: { role: 'writer', type: 'anyone' }
   });
+  
   return data.id;
 }
 
@@ -162,9 +208,6 @@ async function writeToSheet(sheets, spreadsheetId, data) {
   });
 }
 
-
-
-
 // --- Main API Handler ---
 
 export default async function handler(req, res) {
@@ -178,7 +221,7 @@ export default async function handler(req, res) {
   try {
     // --- Odoo Config ---
     const { ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD } = process.env;
-    const { location_id = 8, pricelist_id = 5 } = req.body || {};
+    const { location_id = 8, pricelist_id = 5, category } = req.body || {};
     const odooConfig = {
         url: ODOO_URL, db: ODOO_DB, username: ODOO_USERNAME, password: ODOO_PASSWORD,
         location_id: parseInt(location_id), pricelist_id: parseInt(pricelist_id)
@@ -196,10 +239,13 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Odoo authentication failed' });
     }
 
-    // 2. Get Stock from Odoo
-    const products = await getOdooStock(odooConfig, uid);
+    // 2. Get Stock from Odoo with category filtering
+    const products = await getOdooStock(odooConfig, uid, category);
     if (!products.length) {
-      return res.status(200).json({ success: true, message: 'No products with available stock found.' });
+      return res.status(200).json({ 
+        success: true, 
+        message: `No products with available stock found${category ? ` for category ${category}` : ''}.` 
+      });
     }
 
     // 3. Authenticate with Google
@@ -208,7 +254,7 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
 
     // 4. Copy Template and Write Data
-    const newSheetId = await copyTemplate(drive, GOOGLE_SHEET_TEMPLATE_ID);
+    const newSheetId = await copyTemplate(drive, GOOGLE_SHEET_TEMPLATE_ID, category);
     await writeToSheet(sheets, newSheetId, products);
 
     // 5. Return new sheet URL
