@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { location_id = 8, pricelist_id = 5 } = req.body || {};
+    const { location_id = 8, pricelist_id = 5, category } = req.body || {};
     const { ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD } = process.env;
     const missing = ['ODOO_URL','ODOO_DB','ODOO_USERNAME','ODOO_PASSWORD'].filter(v => !process.env[v]);
     if (missing.length) {
@@ -102,13 +102,25 @@ export default async function handler(req, res) {
     }
 
     // Filtrar productos por categoría
+    let categoryFilter = [];
+    if (category === 'general') {
+        categoryFilter = ['categ_id', 'child_of', 8];
+    } else if (category === 'segunda') {
+        categoryFilter = ['categ_id', 'child_of', 88];
+    }
+
+    const productSearchDomain = [
+        ['id', 'in', allProductIds],
+    ];
+
+    if (categoryFilter.length > 0) {
+        productSearchDomain.push(categoryFilter);
+    }
+
     const filteredProductIds = await xmlrpcCall(models, 'execute_kw', [
       ODOO_DB, uid, ODOO_PASSWORD,
       'product.product', 'search',
-      [[
-        ['id', 'in', allProductIds],
-        ['categ_id', 'child_of', 88]
-      ]]
+      [productSearchDomain]
     ]);
 
     if (filteredProductIds.length === 0) {
