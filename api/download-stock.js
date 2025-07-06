@@ -131,62 +131,55 @@ export default async function handler(req, res) {
       });
     }
 
-    // Obtener información de productos - incluimos display_name explícitamente
+    // Obtener información de productos - incluimos display_name y categ_id explícitamente
     const products = await xmlrpcCall(models, 'execute_kw', [
       ODOO_DB, uid, ODOO_PASSWORD,
       'product.product', 'read',
-      [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name']]
+      [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name', 'categ_id']]
     ]);
 
-    // Obtener precios de la lista de precios
-    const productPrices = {};
-    const pricePromises = products.map(async product => {
-      try {
-        // Usar el método correcto para obtener precios de pricelist
-        const priceResult = await xmlrpcCall(models, 'execute_kw', [
-          ODOO_DB, uid, ODOO_PASSWORD,
-          'product.pricelist', 'price_get',
-          [parseInt(pricelist_id), product.id, 1]
-        ]);
-        
-        // Si price_get no funciona, intentar con get_product_price
-        if (!priceResult || typeof priceResult !== 'number') {
-          const altPrice = await xmlrpcCall(models, 'execute_kw', [
-            ODOO_DB, uid, ODOO_PASSWORD,
-            'product.pricelist', 'get_product_price',
-            [parseInt(pricelist_id), product.id, 1]
-          ]);
-          productPrices[product.id] = altPrice || product.list_price || 0;
-        } else {
-          productPrices[product.id] = priceResult;
-        }
-      } catch (err) {
-        console.error(`Error getting price for product ${product.id}:`, err.message);
-        // Como último recurso, intentar buscar precio directo en product.pricelist.item
-        try {
-          const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
-            ODOO_DB, uid, ODOO_PASSWORD,
-            'product.pricelist.item', 'search_read',
-            [[
-              ['pricelist_id', '=', parseInt(pricelist_id)],
-              ['product_id', '=', product.id]
-            ], ['fixed_price', 'price_discount', 'percent_price']]
-          ]);
-          
-          if (pricelistItems.length > 0) {
-            const item = pricelistItems[0];
-            productPrices[product.id] = item.fixed_price || (product.list_price * (1 - (item.price_discount || 0) / 100)) || product.list_price || 0;
-          } else {
-            productPrices[product.id] = product.list_price || 0;
-          }
-        } catch (itemErr) {
-          console.error(`Error getting pricelist item for product ${product.id}:`, itemErr.message);
-          productPrices[product.id] = product.list_price || 0;
-        }
-      }
-    });
+    // Obtener reglas de la lista de precios
+    const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+        ODOO_DB, uid, ODOO_PASSWORD,
+        'product.pricelist.item', 'search_read',
+        [[['pricelist_id', '=', parseInt(pricelist_id)]], ['categ_id', 'compute_price', 'fixed_price', 'price_discount', 'percent_price']]
+    ]);
 
-    await Promise.all(pricePromises);
+    // Mapear reglas de precios por ID de categoría para una búsqueda más sencilla
+    const categoryPriceRules = {};
+    for (const item of pricelistItems) {
+        if (item.categ_id) {
+            categoryPriceRules[item.categ_id[0]] = item;
+        }
+    }
+
+    // Función para obtener la regla de precio más específica para un producto
+    const getPriceRule = (product) => {
+        let categoryId = product.categ_id[0];
+        // Buscar una regla para la categoría exacta del producto
+        if (categoryPriceRules[categoryId]) {
+            return categoryPriceRules[categoryId];
+        }
+        return null; // No se encontró ninguna regla aplicable
+    };
+
+    // Calcular precios de productos
+    const productPrices = {};
+    products.forEach(product => {
+        const rule = getPriceRule(product);
+        if (rule) {
+            if (rule.compute_price === 'fixed') {
+                productPrices[product.id] = rule.fixed_price || 0;
+            } else if (rule.compute_price === 'percentage') {
+                const discount = rule.price_discount || 0;
+                productPrices[product.id] = product.list_price * (1 - discount / 100);
+            } else {
+                productPrices[product.id] = product.list_price; // Precio base por defecto
+            }
+        } else {
+            productPrices[product.id] = product.list_price; // Precio base si no hay regla
+        }
+    });
 
     // Preparar datos finales
     const finalProducts = products

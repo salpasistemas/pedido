@@ -67,62 +67,52 @@ async function getOdooStock(config, uid, category) {
   if (!filteredProductIds.length) return [];
 
   const products = await xmlrpcCall(models, 'execute_kw', [
-    db, uid, password, 'product.product', 'read', 
-    [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name']]
+    db, uid, password, 'product.product', 'read',
+    [filteredProductIds, ['display_name', 'default_code', 'list_price', 'name', 'categ_id']]
   ]);
 
+  const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
+      db, uid, password,
+      'product.pricelist.item', 'search_read',
+      [[['pricelist_id', '=', parseInt(pricelist_id)]], ['categ_id', 'compute_price', 'fixed_price', 'price_discount', 'percent_price']]
+  ]);
+
+  const categoryPriceRules = {};
+  for (const item of pricelistItems) {
+      if (item.categ_id) {
+          categoryPriceRules[item.categ_id[0]] = item;
+      }
+  }
+
+  const getPriceRule = (product) => {
+      let categoryId = product.categ_id[0];
+      if (categoryPriceRules[categoryId]) {
+          return categoryPriceRules[categoryId];
+      }
+      return null;
+  };
+
   const productPrices = {};
-  const pricePromises = products.map(async product => {
-    try {
-      const priceDict = await xmlrpcCall(models, 'execute_kw', [
-        db, uid, password,
-        'product.pricelist', 'price_get',
-        [[parseInt(pricelist_id)], [product.id], 1]
-      ]);
-
-      const priceValue = priceDict?.[product.id];
-      if (typeof priceValue === 'number') {
-        productPrices[product.id] = priceValue;
+  products.forEach(product => {
+      const rule = getPriceRule(product);
+      if (rule) {
+          if (rule.compute_price === 'fixed') {
+              productPrices[product.id] = rule.fixed_price || 0;
+          } else if (rule.compute_price === 'percentage') {
+              const discount = rule.price_discount || 0;
+              productPrices[product.id] = product.list_price * (1 - discount / 100);
+          } else {
+              productPrices[product.id] = product.list_price;
+          }
       } else {
-        throw new Error('Invalid price from price_get');
+          productPrices[product.id] = product.list_price;
       }
-
-    } catch (err) {
-      console.error(`Error getting price from price_get for product ${product.id}:`, err.message);
-
-      try {
-        const pricelistItems = await xmlrpcCall(models, 'execute_kw', [
-          db, uid, password,
-          'product.pricelist.item', 'search_read',
-          [[
-            ['pricelist_id', '=', parseInt(pricelist_id)],
-            ['product_id', '=', product.id]
-          ], ['fixed_price', 'price_discount', 'percent_price']]
-        ]);
-
-        if (pricelistItems.length > 0) {
-          const item = pricelistItems[0];
-          productPrices[product.id] =
-            item.fixed_price ||
-            (product.list_price * (1 - (item.price_discount || 0) / 100)) ||
-            product.list_price || 0;
-        } else {
-          productPrices[product.id] = product.list_price || 0;
-        }
-
-      } catch (fallbackErr) {
-        console.error(`Fallback price error for product ${product.id}:`, fallbackErr.message);
-        productPrices[product.id] = product.list_price || 0;
-      }
-    }
   });
-
-  await Promise.all(pricePromises);
 
   return products.map(p => ({
     product_id: p.id,
-    name: p.name.replace(/^\[.*?\]\s*/, '').trim(),
-    display_name: p.display_name.replace(/^\[.*?\]\s*/, '').trim(),
+    name: p.name.replace(/^\\[.*?\\]\\s*/, '').trim(),
+    display_name: p.display_name.replace(/^\\[.*?\\]\\s*/, '').trim(),
     qty_available: Math.floor(productQuantities[p.id] || 0),
     price: Math.round((productPrices[p.id] || p.list_price || 0) * 100) / 100,
   })).filter(p => p.qty_available > 0)
