@@ -131,12 +131,12 @@
     <img src="logo.png" alt="Logo Salpa" class="logo">
   </header>
   <div class="container">
-    <h2>Generar Nota de Pedido</h2>
+    <h2><b>Generar Nota de Pedido</b></h2>
     <div class="description">
       Crea automáticamente una hoja de cálculo con el inventario actual para realizar tu pedido online.
     </div>
     <div class="button-group">
-      <button class="download-btn" id="download-wh-stock">WH/STOCK</button>
+      <!-- <button class="download-btn" id="download-wh-stock">WH/STOCK</button> -->
       <button class="download-btn" id="download-general-stock">GENERAL</button>
       <button class="download-btn" id="download-segunda-stock">SEGUNDA</button>
     </div>
@@ -147,7 +147,7 @@
   </div>
 
   <script>
-    const whStockBtn = document.getElementById('download-wh-stock');
+    // const whStockBtn = document.getElementById('download-wh-stock');
     const generalStockBtn = document.getElementById('download-general-stock');
     const segundaStockBtn = document.getElementById('download-segunda-stock');
     const status = document.getElementById('status');
@@ -168,7 +168,7 @@
     }
 
     function setButtonsDisabled(disabled) {
-        whStockBtn.disabled = disabled;
+        // whStockBtn.disabled = disabled;
         generalStockBtn.disabled = disabled;
         segundaStockBtn.disabled = disabled;
     }
@@ -212,7 +212,7 @@
       }
     }
 
-    whStockBtn.addEventListener('click', (e) => createSheet(undefined, e.currentTarget));
+    // whStockBtn.addEventListener('click', (e) => createSheet(undefined, e.currentTarget));
     generalStockBtn.addEventListener('click', (e) => createSheet('general', e.currentTarget));
     segundaStockBtn.addEventListener('click', (e) => createSheet('segunda', e.currentTarget));
   </script>
