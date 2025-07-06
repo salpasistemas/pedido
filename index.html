@@ -46,14 +46,14 @@
       background: linear-gradient(135deg, #658c68 0%, #7da57f 100%);
       color: white;
       border: none;
-      padding: 15px 40px;
+      padding: 15px 30px;
       border-radius: 25px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
-      margin-top: 20px;
-      min-width: 200px;
+      margin-top: 10px;
+      min-width: 150px;
       box-shadow: 0 4px 15px rgba(101, 140, 104, 0.3);
     }
     .download-btn:hover:not(:disabled) {
@@ -67,6 +67,7 @@
     }
     .button-group {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         justify-content: center;
         margin-top: 20px;
@@ -153,7 +154,7 @@
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
 
-    const API_URL = 'https://pedido2-five.vercel.app/api/download-stock';
+    const API_URL = 'https://pedido2-five.vercel.app/api/create-sheet';
 
     function showStatus(type, message) {
       status.className = `status ${type}`;
@@ -165,79 +166,55 @@
       progressFill.style.width = percent + '%';
       progressBar.style.display = 'block';
     }
-    
+
     function setButtonsDisabled(disabled) {
         whStockBtn.disabled = disabled;
         generalStockBtn.disabled = disabled;
         segundaStockBtn.disabled = disabled;
     }
 
-    function convertToCSV(data) {
-        const headers = Object.keys(data[0]);
-        const rows = data.map(obj => headers.map(header => obj[header]));
-        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-        return csvContent;
-    }
+    async function createSheet(category, btn) {
+      const originalText = btn.innerHTML;
+      try {
+        setButtonsDisabled(true);
+        btn.innerHTML = '<div class="spinner"></div>Conectando...';
+        showStatus('processing', '🔄 Conectando con Odoo y Google...');
+        setProgress(25);
 
-    function downloadCSV(csvContent, fileName) {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location_id: 8, pricelist_id: 5, category: category })
+        });
+
+        setProgress(75);
+        showStatus('processing', '⏳ Creando tu hoja...');
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'No se pudo crear la hoja de pedido.');
         }
-    }
 
-    async function downloadStock(category, btn) {
-        const originalText = btn.innerHTML;
-        try {
-            setButtonsDisabled(true);
-            btn.innerHTML = '<div class="spinner"></div>';
-            showStatus('processing', '🔄 Conectando con Odoo...');
-            setProgress(25);
+        setProgress(100);
+        showStatus('success', `✅ ¡Hoja creada! <a href="${data.url}" target="_blank">Abrir pedido</a>`);
 
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category: category, location_id: 8, pricelist_id: 5 })
-            });
-
-            setProgress(75);
-            showStatus('processing', '⏳ Descargando productos...');
-
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || 'No se pudo obtener el stock.');
-            }
-
-            if (data.products && data.products.length > 0) {
-                const csv = convertToCSV(data.products);
-                const fileName = `pedido_${category || 'wh_stock'}_${new Date().toISOString().split('T')[0]}.csv`;
-                downloadCSV(csv, fileName);
-                setProgress(100);
-                showStatus('success', `✅ ¡Archivo ${fileName} descargado!`);
-            } else {
-                setProgress(0);
-                showStatus('success', 'ℹ️ No hay productos en stock para esta categoría.');
-            }
-
-        } catch (err) {
-            showStatus('error', `❌ Error: ${err.message}`);
-            setProgress(0);
-        } finally {
+        // Update button to open sheet directly
+        btn.innerHTML = '🚀 Abrir Pedido';
+        btn.onclick = () => window.open(data.url, '_blank');
+      } catch (err) {
+        showStatus('error', `❌ Error: ${err.message}`);
+        setProgress(0);
+      } finally {
+        setTimeout(() => {
             btn.innerHTML = originalText;
             setButtonsDisabled(false);
-        }
+        }, 2000);
+      }
     }
 
-    whStockBtn.addEventListener('click', (e) => downloadStock(undefined, e.currentTarget));
-    generalStockBtn.addEventListener('click', (e) => downloadStock('general', e.currentTarget));
-    segundaStockBtn.addEventListener('click', (e) => downloadStock('segunda', e.currentTarget));
+    whStockBtn.addEventListener('click', (e) => createSheet(undefined, e.currentTarget));
+    generalStockBtn.addEventListener('click', (e) => createSheet('general', e.currentTarget));
+    segundaStockBtn.addEventListener('click', (e) => createSheet('segunda', e.currentTarget));
   </script>
 </body>
 </html>
