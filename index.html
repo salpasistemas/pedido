@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Descargar Stock - Crear Pedido</title>
+  <title>Salpa - Nota de Pedido</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
@@ -188,7 +188,7 @@
   </header>
 
   <div class="container">
-    <h2>🚀 Crear Pedido en Google Sheets</h2>
+    <h2>Generar Nota de Pedido</h2>
     <div class="description">
       Crea una nueva hoja de cálculo de Google Sheets con el inventario actual para realizar tu pedido de forma online y colaborativa.
     </div>
@@ -208,7 +208,7 @@
       <div class="download-hint">Precios con Lista 5<br>Se generará un archivo Excel optimizado</div>
     </div>
     <button class="download-btn" id="downloadBtn">
-      <span id="downloadBtnText">📥 Descargar Stock Actual</span>
+      <span id="downloadBtnText">📥 Generar Pedido</span>
     </button>
     <div class="status" id="status"></div>
     <div class="progress-bar" id="progressBar">
@@ -270,7 +270,7 @@ async function createSheet() {
     }
 
     setProgress(100);
-    showStatus('success', `✅ ¡Hoja de cálculo creada!<br><strong><a href="${data.url}" target="_blank">Haz clic aquí para abrir tu pedido</a></strong>`);
+    showStatus('success', `✅ ¡Hoja de cálculo creada! <a href="${data.url}" target="_blank">Abrir pedido</a>`);
     
     // Prepara el siguiente paso
     uploadLink.href = data.url;
