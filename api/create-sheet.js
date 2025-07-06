@@ -162,30 +162,7 @@ async function writeToSheet(sheets, spreadsheetId, data) {
   });
 }
 
-// Hide columns A and B
-async function hideColumns(sheets, spreadsheetId) {
-  const requests = [
-    {
-      updateDimensionProperties: {
-        range: {
-          sheetId: 0, // Assuming 'PEDIDO' is the first sheet
-          dimension: 'COLUMNS',
-          startIndex: 0, // Column A
-          endIndex: 2   // Column B
-        },
-        properties: {
-          hiddenByUser: true
-        },
-        fields: 'hiddenByUser'
-      }
-    }
-  ];
 
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: { requests }
-  });
-}
 
 
 // --- Main API Handler ---
@@ -233,7 +210,6 @@ export default async function handler(req, res) {
     // 4. Copy Template and Write Data
     const newSheetId = await copyTemplate(drive, GOOGLE_SHEET_TEMPLATE_ID);
     await writeToSheet(sheets, newSheetId, products);
-    await hideColumns(sheets, newSheetId);
 
     // 5. Return new sheet URL
     const sheetUrl = `https://docs.google.com/spreadsheets/d/${newSheetId}/edit`;
